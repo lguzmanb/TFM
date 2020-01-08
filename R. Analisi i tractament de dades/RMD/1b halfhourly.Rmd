@@ -1,0 +1,157 @@
+---
+title: "halfhourly"
+author: "Laura Guzman"
+date: "11 octubre de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#halfhourly_dataset 
+(tots els blocs) : id, data i hora cada mitja hora, consum
+
+
+Carreguem del block_0 al block 56 
+
+```{r}
+
+#Creem una llista amb els noms dels arxius que volem carregar que es troben a la carpeta indicada
+
+#library(timereg)
+#library(mets)
+library(data.table)
+library(timeDate)
+
+files_halfhourly2<-list.files(path="halfhourly_block")
+
+#Anir? a buscar a la carpeta Smart meters/R i per tant cal que tinguem les dades que volem carregar all?. 
+#Creem dataframe amb les dades de tots els blocs, 
+halfhourly_dataset2 <- do.call(rbind, lapply(files_halfhourly2, function(x) as.data.frame(fread(x,header = TRUE))))
+
+#Mostrem primeres files
+head(halfhourly_dataset2)
+
+```
+
+
+
+
+
+```{r}
+write.csv(halfhourly_dataset2,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Brut/hourly_consum_brut_2.csv", row.names = FALSE )
+```
+
+
+
+```{r}
+#Dimensi?
+dim(halfhourly_dataset2)
+```
+
+
+Veiem que la data apareix en format "any-mes-dia hora:minuts:segons.0000000" i eliminarem aquests zeros perquè ens ho reconegui com a timestamp
+```{r}
+halfhourly_dataset2$tstp<-gsub(".0000000", "", halfhourly_dataset2$tstp)
+```
+
+```{r}
+write.csv(halfhourly_dataset2,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Brut/hourly_consum_brut_2_sense0.csv", row.names = FALSE )
+```
+
+
+Convertim variable tstp
+```{r}
+halfhourly_dataset2$tstp<-as.timeDate(halfhourly_dataset2$tstp) 
+
+
+```
+
+
+
+
+
+
+
+
+Canviem nom variable energy(kWh/hh) a energy. 
+
+```{r}
+names(halfhourly_dataset2[2])<- "energy"
+```
+
+
+Passem energy a nombre:
+
+```{r}
+halfhourly_dataset2$energy<- as.numeric(halfhourly_dataset2$energy)
+```
+
+
+```{r}
+library(dplyr)
+
+#Seleccionem variables id, tstp i energy:
+
+halfhourly_dataset2<-select(halfhourly_dataset2,LCLid, tstp, energy)
+
+```
+
+
+```{r}
+#Comprovem dades 
+
+# Tipus de dades 
+str(halfhourly_dataset2)
+
+```
+
+
+
+
+Ens surt l'error Error: cannot allocate vector of size 3.8 Gb i comprovem i és cert que només tenim disponibles 3.1GB de RAM de 16GB. 
+
+
+
+
+Comprovem valors buits
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(halfhourly_dataset2))
+
+
+```
+
+```{r}
+
+halfhourly_dataset2[is.na(halfhourly_dataset2$energy),]
+ 
+```
+ 
+
+```{r}
+halfhourly_dataset2[halfhourly_dataset2$LCLid=="MAC002357" & halfhourly_dataset2$tstp>"2012-12-18 15:22:07",]
+```
+
+
+```{r}
+
+
+```
+
+
+
+
+
+```{r}
+#halfhourly_dataset$Hour<-hour(halfhourly_dataset$tstp)
+#halfhourly_dataset$Date<-as.Date(halfhourly_dataset$tstp)
+
+#str(halfhourly_dataset)
+
+```
+
+

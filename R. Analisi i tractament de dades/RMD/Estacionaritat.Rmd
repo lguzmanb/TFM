@@ -1,0 +1,749 @@
+---
+title: "Estacionaritat"
+author: "Laura Guzman"
+date: "22 novembre de 2019"
+output:
+  html_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Carreguem dades
+
+```{r}
+daily <-read.csv( file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/daily.csv",header=TRUE, sep=",", stringsAsFactors = FALSE)
+
+```
+
+Les mostrem
+
+```{r}
+str(daily)
+
+```
+
+Eliminem atributs que no necessitem segons l'anàlisi previ fet
+Deixem humidity, cloudcover i visibility
+Tamb� deixem dewpoint i pressure
+
+```{r}
+library(dplyr)
+daily<-select(daily, -energy_median,-energy_max, -energy_min, -temperatureMaxHour, -temperatureMinHour, - apparentTemperatureMaxHour, -apparentTemperatureMinHour,-temperatureHighHour,-temperatureLowHour,-apparentTemperatureHighHour,apparentTemperatureLowHour, -temperatureMax, -temperatureMin,-temperatureHigh,-temperatureLow, -apparentTemperatureHigh, apparentTemperatureLow,-windBearing, -windSpeed,-moonPhase, -icon, -precipType, -uvIndex, -uvIndexHour, -sunriseTimeHour, -cluster_9,-tempMaxFactor, -X, -holidayType, -apparentTemperatureLow, -apparentTemperatureLowHour )
+
+#Comprovem
+str(daily)
+```
+
+
+```{r}
+library(lubridate)
+daily$weekday<-wday(daily$date, week_start = getOption("lubridate.week.start", 1))
+
+daily$weekday <- as.factor(daily$weekday)
+
+```
+```{r}
+#Eliminem 28-02-2014
+
+daily<-daily[daily$date!="2014-02-28",]
+
+
+```
+
+```{r}
+#write.csv(daily,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily.csv", row.names = FALSE )
+```
+
+
+
+
+
+
+```{r}
+#Factoritzem 
+
+daily$summary <- as.factor(daily$summary)
+daily$year <- as.factor(daily$year)
+daily$month <- as.factor(daily$month)
+daily$isHoliday <- as.factor(daily$isHoliday)
+daily$season <- as.factor(daily$season)
+daily$sunsetTimeHour <- as.factor(daily$sunsetTimeHour)
+daily$date <- as.Date(daily$date)
+daily$LCLid <- as.factor(daily$LCLid)
+
+daily$stdorToU <- as.factor(daily$stdorToU)
+daily$Acorn <- as.factor(daily$Acorn)
+daily$Acorn_grouped <- as.factor(daily$Acorn_grouped)
+
+
+
+```
+
+```{r}
+daily_agr<-aggregate(energy_sum~date+apparentTemperatureMax+sunsetTimeHour+weekday+season+stdorToU+Acorn+cloudCover+humidity+visibility+month, data=daily, FUN=mean) 
+
+```
+
+```{r}
+#write.csv(daily_agr,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily_agr_mitjanaAcornTarifaPerDia.csv", row.names = FALSE )
+```
+
+
+
+
+```{r}
+daily_agr_3<-aggregate(energy_sum~date+apparentTemperatureMax+apparentTemperatureMin+sunsetTimeHour+weekday+season+cloudCover+humidity+visibility+month+dewPoint+pressure, data=daily, FUN=mean) 
+
+```
+
+```{r}
+#write.csv(daily_agr_3,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily_agr_mitjanaLlarPerDia_tot.csv", row.names = FALSE )
+```
+
+
+
+```{r}
+daily_agr_4<-aggregate(energy_sum~date+Acorn+apparentTemperatureMax+apparentTemperatureMin+sunsetTimeHour+weekday+season+cloudCover+humidity+visibility+month+dewPoint+pressure, data=daily, FUN=mean) 
+
+```
+
+```{r}
+#write.csv(daily_agr_4,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily_agr_mitjanaAcornPerDia_tot.csv", row.names = FALSE )
+```
+
+
+
+```{r}
+daily_agr_2<-aggregate(energy_sum~date+apparentTemperatureMax+apparentTemperatureMin+sunsetTimeHour+weekday+season+Acorn+cloudCover+humidity+visibility+month, data=daily, FUN=mean) 
+
+```
+
+```{r}
+#write.csv(daily_agr_2,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily_agr_mitjanaAcornPerDia.csv", row.names = FALSE )
+```
+
+
+
+
+
+
+```{r}
+daily_agr_1<-aggregate(energy_sum~date+apparentTemperatureMax+apparentTemperatureMin+humidity, data=daily, FUN=mean) 
+
+```
+
+```{r}
+#write.csv(daily_agr_1,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily_agr_mitjanaLlarPerDia_tempmin.csv", row.names = FALSE )
+```
+
+
+
+
+
+```{r}
+daily_agr<-aggregate(energy_sum~date+apparentTemperatureMax+sunsetTimeHour+weekday+season+cloudCover+humidity+visibility+month, data=daily, FUN=mean) 
+
+```
+
+```{r}
+#write.csv(daily_agr,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Final/daily_agr_mitjanaLlarPerDia.csv", row.names = FALSE )
+```
+
+
+```{r}
+#Eliminem dades del 2011
+
+daily<-daily[daily$year==2012 | daily$year==2013 |daily$year==2014,]
+
+```
+
+```{r}
+#Eliminem 28-02-2014
+
+
+daily<-daily[daily$year==2012 | daily$year==2013 |daily$year==2014,]
+daily<-daily[daily$date!="2014-02-28",]
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+daily_cluster<-select(daily, humidity,cloudCover, visibility)
+```
+
+
+```{r}
+
+SSE <- rep(0,10)
+fit_kmeans_2 <- kmeans(daily_cluster, 2)
+SSE[2]<-fit_kmeans_2$tot.withinss
+fit_kmeans_3 <- kmeans(daily_cluster, 3) 
+SSE[3]<-fit_kmeans_3$tot.withinss
+
+fit_kmeans_4 <- kmeans(daily_cluster, 4)
+SSE[4]<-fit_kmeans_4$tot.withinss
+
+fit_kmeans_5 <- kmeans(daily_cluster, 5) 
+SSE[5]<-fit_kmeans_5$tot.withinss
+
+fit_kmeans_6 <- kmeans(daily_cluster, 6)
+SSE[6]<-fit_kmeans_6$tot.withinss
+
+fit_kmeans_7 <- kmeans(daily_cluster, 7)
+SSE[7]<-fit_kmeans_7$tot.withinss
+
+fit_kmeans_8 <- kmeans(daily_cluster, 8)
+SSE[8]<-fit_kmeans_8$tot.withinss
+
+fit_kmeans_9 <- kmeans(daily_cluster, 9) 
+SSE[9]<-fit_kmeans_9$tot.withinss
+
+fit_kmeans_10 <- kmeans(daily_cluster, 10) 
+SSE[10]<-fit_kmeans_10$tot.withinss
+
+```
+
+
+```{r}
+# Gràfic del colze
+  
+plot(2:10,SSE[2:10], xlab="Nombre de clústers (k)", ylab="SSE (tot.withins)", type="o", main="Gràfic del colze")
+```
+
+Veiem que de 2 a 3 baixa en picat l'error, tot i que sembla que sigui a partir de k=8 on s'estabilitza i l'error quasi no varia. 
+
+
+```{r}
+fit_kmeans_8 <- kmeans(daily_cluster, 8) 
+y_cluster8 <- fit_kmeans_8$cluster
+
+```
+
+
+```{r}
+#Afegim a daily la variable de y_cluster 
+
+
+daily$humCloudVis<- y_cluster8
+
+
+```
+
+
+```{r}
+plot(daily$humidity,daily$cloudCover, col=daily$humCloudVis)# c
+legend(7,4.3,unique(daily$humCloudVis),col=1:length(daily$humCloudVis),pch=1)
+```
+
+
+
+
+```{r}
+library(ggplot2)
+qplot(cloudCover,humidity, data=daily, colour=humCloudVis)
+```
+
+
+
+```{r}
+fit_kmeans_6 <- kmeans(daily_cluster, 6) 
+y_cluster6 <- fit_kmeans_6$cluster
+
+```
+
+
+```{r}
+#Afegim a daily la variable de y_cluster 
+
+
+daily$humCloudVis<- y_cluster6
+daily$humCloudVis<-as.factor(daily$humCloudVis)
+
+```
+
+```{r}
+qplot(cloudCover,humidity, data=daily, colour=humCloudVis)
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+daily_sum<-select(daily, date, energy_sum)
+
+```
+
+
+```{r}
+daily_agr_dia_mitjanaLlar<-aggregate(energy_sum~date, data=daily_sum, FUN=mean) 
+```
+
+
+
+
+Com que sabem que cada setmana és un cicle, com també que cada estació es diferent com que cada any es repeteix.
+```{r}
+daily_ts_set<-ts(daily_agr_dia_mitjanaLlar$energy_sum, frequency=7, start=c(2012,1), end=(2014))#Setmanal
+daily_ts_set<-ts(daily_agr_dia_mitjanaLlar$energy_sum, frequency=7)#Setmanal
+
+daily_ts_anual<-ts(daily_agr_dia_mitjanaLlar$energy_sum, frequency=365)#Anual
+#daily_ts_diari<-ts(daily_agr_dia_mitjanaLlar$energy_sum, frequency=1)#Diari
+
+```
+
+```{r}
+plot.ts(daily_ts_set)
+plot.ts(daily_ts_anual)
+
+
+
+```
+
+```{r}
+plot(decompose(daily_ts_set))
+plot(decompose(daily_ts_anual))
+
+```
+
+
+```{r}
+plot(stl(daily_ts_set, "per"))
+```
+
+
+
+
+
+
+Representem tendència:
+
+
+```{r}
+library(descomponer)
+desc<-gdescomponer(daily_ts_set,7,1,2012,1)
+```
+
+
+```{r}
+
+
+plot(daily_ts_set, main="Tendencia")
+legend("bottomright", c("Original", "decompose", "stl", "descomponer"), lwd=c(1,2,2,2), col=c("black",2,3,4))
+
+lines (decompose(daily_ts_set)$trend,col=2)
+lines(stl(daily_ts_set,"per")$time.series[,2],col=3)
+lines((desc$TD))
+grid()
+
+
+
+
+
+```
+
+Estacionalitat
+```{r}
+```
+
+```{r}
+plot (decompose(daily_ts_set)$seasonal, col=2, main="Estacionalitat")
+lines(stl(daily_ts_set,"per")$time.series[,1],col=3)
+lines((desc$ST), col=4)
+legend("bottomright", c("decompose", "stl","descomponer"), lwd=c(2,2,2), col=c(2,3,4))
+grid()
+```
+
+
+
+
+```{r}
+par(mfcol = c(1, 2))
+acf(daily_ts_set)
+pacf(daily_ts_set)
+
+```
+La sèrie no és estacionaria en mitja. 
+
+```{r}
+library(forecast)
+daily_desseasonal<-stl(daily_ts_set, s.window="periodic")
+plot(daily_desseasonal)
+daily_desseasonal<-seasadj(daily_desseasonal)
+
+```
+
+
+```{r}
+plot(daily_desseasonal)
+```
+
+
+```{r}
+daily_ts_set_log<-log(daily_desseasonal)
+```
+
+
+```{r}
+plot(daily_ts_set_log)
+```
+
+
+
+
+Fem diferències:
+
+```{r}
+par(mfcol = c(1, 1))
+daily_ts_set_dif1 <- diff(daily_ts_set_log)
+plot(daily_ts_set_dif1, main="Consum energia. Diferències")
+```
+
+```{r}
+par(mfcol=c(1,2))
+acf(daily_ts_set_dif1)
+pacf(daily_ts_set_dif1)
+```
+
+Fem diferencia de 7
+
+```{r}
+par(mfcol = c(1, 1))
+daily_ts_set_dif1_7<-diff(daily_ts_set_log,7)
+plot(daily_ts_set_dif1_7, main="Consum. Diferències setmanals")
+```
+
+```{r}
+par(mfcol = c(1, 1))
+daily_ts_set_dif1_7<-diff(daily_ts_set_dif1_7,7)
+plot(daily_ts_set_dif1_7, main="Consum. Diferències setmanals")
+```
+
+
+
+```{r}
+par(mfcol = c(1, 1))
+daily_ts_set_dif1_7<-diff(daily_ts_set_dif1,7)
+plot(daily_ts_set_dif1_7, main="Consum. Diferències setmanals")
+```
+
+
+```{r}
+
+par(mfcol=c(1,2))
+acf(daily_ts_set_dif1_7)
+pacf(daily_ts_set_dif1_7)
+```
+
+Fem diff de 52
+
+(daily_ts_set_dif1_7_52)
+
+```{r}
+#La sèrie es estacionaria?
+library(aTSA)
+#adf.test(daily_ts_set_dif1_7_52)
+#nsdiffs(daily_ts_set_dif1_7_52)
+#season.test(daily_ts_set_dif1_7_52)
+```
+
+
+```{r}
+#ARIMA
+library(forecast)
+mod1<-auto.arima(daily_ts_set_dif1_7, seasonal=TRUE)
+
+
+```
+
+
+```{r}
+mod1
+```
+
+```{r}
+tsdisplay(residuals(mod1))
+
+```
+
+
+
+```{r}
+#(prediccio<-forecast(mod1) # h=40
+#plot(prediccio)
+```
+```{r}
+#mod2<-auto.arima(daily_ts_set_dif1_7, seasonal=TRUE)
+#mod2
+#tsdisplay(residuals(mod2))
+
+```
+```{r}
+#prediccio2<-forecast(mod2,h=40)
+#plot(prediccio2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+```{r}
+daily[daily$date=="2012-08-07",]
+daily[daily$date=="2014-02-27",]
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+XARXA
+
+
+```{r}
+str(daily)
+```
+
+```{r}
+
+formula<-as.formula("energy_sum~apparentTemperatureMax+season+stdorToU+Acorn+sunsetTimeHour+weekday+date")
+
+
+```
+
+
+```{r}
+#Normalitzem temperatura
+library(scales)
+daily$apparentTemperatureMax<-rescale(daily$apparentTemperatureMax)
+
+
+
+```
+```{r}
+train<-daily[0:2900000,]
+test<-daily[2900001:3503492,]
+```
+
+
+
+```{r}
+#model
+library(neuralnet)
+library(dplyr)
+train_<-model.matrix(~energy_sum+apparentTemperatureMax+season+stdorToU+Acorn+sunsetTimeHour+weekday+date, train)
+
+train_<-as.data.frame(train_)
+train_<-train_[,2:36]
+
+
+
+```
+
+```{r}
+daily_agr<-aggregate(energy_sum~date+apparentTemperatureMax+sunsetTimeHour+weekday+season, data=daily, FUN=mean) 
+
+```
+
+```{r}
+daily_agr<-model.matrix(~energy_sum+apparentTemperatureMax+sunsetTimeHour+weekday+date+season, daily_agr)
+
+daily_agr<-as.data.frame(daily_agr)
+daily_agr<-daily_agr[,2:18]
+
+
+```
+
+```{r}
+train1<-daily_agr[0:730,]
+test1<-daily_agr[731:791,]
+```
+
+```{r}
+
+formula<-as.formula("energy_sum ~ apparentTemperatureMax  + date + weekday2 + weekday3 + weekday4  + weekday5 + weekday6 + weekday7+seasonspring +  seasonsummer + seasonwinter+ sunsetTimeHour16 + sunsetTimeHour17 + sunsetTimeHour18 + sunsetTimeHour19 + sunsetTimeHour20")
+model_neuronal<-neuralnet(formula, data=train1, hidden=c(5,5,2), threshold=0.05, algorithm="rprop+")
+
+
+```
+
+```{r}
+model_neuronal
+```
+
+```{r}
+plot(model_neuronal)
+```
+
+
+```{r}
+resultats<-predict(model_neuronal,test1)
+#objects(resultats)
+print(resultats)
+```
+
+
+
+
+
+```{r}
+results<-predict(model_neuronal,test1)
+results
+results_t<-table(test1$energy_sum, apply(results, 1, which.max))
+
+print(test1$energy_sum)
+results_t
+```
+
+```{r}
+results_t
+```
+
+
+```{r}
+results_t[,1]
+```
+
+```{r}
+#results_t.names
+```
+
+
+
+```{r}
+#plot(results_t)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+formula<-as.formula("energy_sum ~ apparentTemperatureMax  + date")
+
+#+ seasonspring +  seasonsummer + seasonwinter + stdorToUToU + AcornACORN-B + AcornACORN-C + AcornACORN-D + AcornACORN-E + AcornACORN-F + AcornACORN-G + AcornACORN-H +  AcornACORN-I + AcornACORN-J + AcornACORN-K + AcornACORN-L + AcornACORN-M +   AcornACORN-N + AcornACORN-O + AcornACORN-P + AcornACORN-Q + AcornACORN-U + sunsetTimeHour16 + sunsetTimeHour17 + sunsetTimeHour18 + sunsetTimeHour19 + sunsetTimeHour20 + weekday2 + weekday3 + weekday4  + weekday5 + weekday6 + weekday7
+
+model_neuronal<-neuralnet(formula, data=train_[,1:35], hidden=c(7,5), threshold=0.05, algorithm="rprop+")
+
+```
+
+
+
+```{r}
+head(train_)
+```
+
+
+
+
+```{r}
+print(model_neuronal)
+```
+
+```{r}
+plot(model_neuronal)
+```
+
+
+```{r}
+test_<-model.matrix(~energy_sum+apparentTemperatureMax+season+stdorToU+Acorn+sunsetTimeHour+weekday+date, test)
+
+test_<-as.data.frame(test_)
+test_<-test_[,2:36]
+
+```
+
+
+```{r}
+#results<-predict(model_neuronal,test)
+#table(test$energy_sum, apply(results, 1, which.max))
+```
+
+
+
+
+
+
+
+
+

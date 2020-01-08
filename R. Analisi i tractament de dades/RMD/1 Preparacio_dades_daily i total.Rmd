@@ -1,0 +1,1573 @@
+---
+title: "Analisi dades"
+author: "Laura Guzman"
+date: "16 d'agost de 2019"
+output:
+  html_document:
+    toc: yes
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+
+library(timeDate)
+library(lubridate)
+library(gdata)
+
+library(knitr)
+
+```
+**Negreta**
+*Cursiva*
+
+#Arxiu informations_households
+
+```{r}
+#Carreguem arxiu de dades
+informations_households <-read.csv(file="dades/1informations_households.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
+```
+
+
+```{r}
+# Tipus de dades 
+print("Tipus de dades")
+str(informations_households)
+
+```
+
+
+```{r}
+# Per a quines variables tindria sentit un proc?s de discretitzaci??
+apply(informations_households,2, function(x) length(unique(x)))
+
+```
+
+
+
+
+```{r}
+#Convertim stdorToU, Acorn , Acorn_grouped i file en factors
+
+informations_households$stdorToU<-as.factor(informations_households$stdorToU)
+informations_households$Acorn<-as.factor(informations_households$Acorn)
+informations_households$Acorn_grouped<-as.factor(informations_households$Acorn_grouped)
+informations_households$file<-as.factor(informations_households$file)
+
+
+```
+
+
+```{r}
+# Comprovem
+print("Tipus de dades")
+str(informations_households)
+
+```
+
+
+
+```{r}
+#Resum dades 
+
+#Dimensió
+print("Dimensió")
+dim(informations_households)
+
+# Resum 
+print("Resum estad?stic")
+summary(informations_households)
+
+
+
+#Mostrem tots els grups d'Acorn
+print("Resum grups Acorn")
+summary(informations_households$Acorn)
+
+
+options(knitr.kable.NA = '')
+kable(summary(informations_households),
+digits=2, align='l', caption="Estadística descriptiva")
+```
+
+Veiem que tenim 5566 files amb 5 columnes. Les columnes s?n les seg?ents variables:
+
+LCLid: Id de la llar. 
+stdorTou: Tipus de tarifa. 
+Acorn: Acorn associat.
+Acorn_grouped: Detalls de l'acorn.
+file: Nom del fitxer al que trobar les dades d'energia.
+
+On cada fila representa una llar. Observem que tenim 5566 llars, on 4443 tenen tarifa "Std" i 1123 tenen tarifa "ToU" (Dynamic Time of Use). 
+En la tarifa dTou, els preus de la tarifa es d?nen el dia abans a trav?s de l'Smart Meter IHD (In Home Display) o a trav?s d'un missatge al m?vil. Amb aquesta tarifa es tenen 3 preus segons l'horari, que s?n: alt=67.20p/kWh, normal=11.76p/kWh i baix=3.99p/kWh. 
+**Es podria estudiar com afecta aquest preu al consum horari d'aquests clients.
+Els clients que no tenen aquesta tarifa, non-Time of Use(std), tenen una tarifa plana de 14.228p/kWh.
+
+
+Veiem que els grups Acorn comprenen des de ACORN-, ACORN-A, ACORN-B ... fins ACORN-U (19 grups) i que la variable Acorn_grouped t? 5 atributs(ACORN-, ACORN-U, Adversity, Affluent i Comfortable), on Affluent ?s el que apareix m?s vegades.
+
+De la variable file, sabem que tenim 112 blocs, des del block_0 al block_111.
+
+
+
+Ens adonem que ACORN-U i ACORN- de Acorn_grouped han de ser errors, ja que en la descripció de les dades original ens diuen que tenim 3 tipus d’Acorn_grouped, de manera que els hem de re-classificar dins d’una de les 3 classes. En l’estudi realitzat per l’autor de les dades a Kaggle, comenta que les llars de la mateixa ACORN estan en la mateixa fila. Amb aquestes dades, estudiem la relació que hi ha entre Acorn, Acorn_grouped i file per poder re-classificar els valors amb errors.
+També ha de ser un error el valor ACORN- de la variable Acorn, ja que tant sols hi ha 2 llars d’aquest tipus. 
+
+```{r}
+#Acorn-Acorn grouped
+
+#Taula freq??ncies
+table(informations_households$Acorn,informations_households$Acorn_grouped)
+#Taules creuades relatives percentatge total
+prop.table(table(informations_households$Acorn,informations_households$Acorn_grouped))*100
+#Taules creuades relatives percentatge per files
+prop.table(table(informations_households$Acorn,informations_households$Acorn_grouped),1)
+#Taules creuades relatives percentatge per columnes
+prop.table(table(informations_households$Acorn,informations_households$Acorn_grouped),2)
+
+```
+
+```{r}
+ggplot(informations_households,aes(x=Acorn,fill=Acorn_grouped))+geom_bar()
+
+ggplot(informations_households,aes(x=reorder(Acorn),fill=Acorn_grouped))+geom_bar()+coord_flip()+scale_fill_manual(values= c("violet", "violetred",           "violetred4" ,   "pink1","palevioletred"))
+
+```
+
+
+```{r}
+informations_households[(informations_households$Acorn=="ACORN-"),]
+```
+
+```{r}
+informations_households[(informations_households$file=="block_0"),]
+
+```
+
+```{r}
+#file-Acorn grouped
+
+#Taula freq??ncies
+taula<-table(informations_households$file,informations_households$Acorn_grouped)
+taula
+
+#Taules creuades relatives percentatge total
+prop.table(table(informations_households$file,informations_households$Acorn_grouped))*100
+#Taules creuades relatives percentatge per files
+prop.table(table(informations_households$file,informations_households$Acorn_grouped),1)
+#Taules creuades relatives percentatge per columnes
+prop.table(table(informations_households$file,informations_households$Acorn_grouped),2)
+```
+
+Ho veiem millor en gràfic
+```{r}
+#gràfic file-Acorn_grouped
+cols<-informations_households$Acorn_grouped
+
+ggplot(informations_households[1:2200,],aes(x=reorder(file),fill=Acorn_grouped) )+geom_bar()+ coord_flip()+scale_fill_manual(values=c("blue", "violet", "purple"))
+
+ggplot(informations_households[2201:3700,],aes(x=reorder(file),fill=Acorn_grouped))+geom_bar()+ coord_flip()+scale_fill_manual(values=c("purple"))
+
+ggplot(informations_households[3701:5566,],aes(x=reorder(file),fill=Acorn_grouped))+geom_bar()+ coord_flip()+scale_fill_manual(values=c( "slateblue", "skyblue","purple"))
+
+
+```
+
+
+```{r}
+#file-Acorn 
+ options(max.print = 2000)
+#Taula freq??ncies
+table(informations_households$file,informations_households$Acorn)
+```
+
+```{r}
+
+library(RPMG)
+
+colors()
+
+
+#gràfic file-Acorn
+ggplot(informations_households[1:2200,],aes(x=reorder(file),fill=Acorn))+geom_bar()+coord_flip()+scale_fill_manual(values=c("mediumpurple" , "mediumpurple1" , "purple", "magenta" ,"magenta2" ,"magenta3", "violet"  ))
+
+ggplot(informations_households[2201:4000,],aes(x=reorder(file),fill=Acorn))+geom_bar()+coord_flip()+scale_fill_manual(values= c("violet", "violetred",    "violetred1"  ,        "violetred2"   ,        "violetred3" ,  "violetred4" , "pink1"))
+ggplot(informations_households[4001:5566,],aes(x=reorder(file),fill=Acorn))+geom_bar()+ coord_flip()+scale_fill_manual(values= c( "pink1", "palevioletred", "palevioletred1", "palevioletred2", "palevioletred3"  ,     "palevioletred4"  , "peachpuff" ))
+
+
+```
+
+
+
+Veiem que a mesura que augmenta l’Acorn, aumenta el número de block, és a dir els de l’Acorn A estan al bloc_0 , block_1 i block_2, els de l’Acorn B estan al block_3 els de l’acorn C al block_3, block_4, block_5 i block_ 6 i així successivament.  Per lògica doncs, intuïm que els de l’Acorn- que estan al block 0 han de ser ACORN-A. I com que els de l’ACORN-A són Affluent, per lògica entenem que aquests valors també ho seran. 
+El mateix amb els valors de l’ACORN-U, que estan tots als blocs 110 i 111, i els últims blocs són els que corresponen a Adversity. 
+
+
+Els tractem:
+
+```{r}
+
+informations_households$Acorn_grouped[informations_households$Acorn_grouped== "ACORN-"]<- "Affluent"
+
+informations_households$Acorn[informations_households$Acorn== "ACORN-"]<- "ACORN-A"
+
+informations_households$Acorn_grouped[informations_households$Acorn_grouped== "ACORN-U"]<- "Adversity"
+
+```
+
+
+```{r}
+informations_households$Acorn<-as.character(informations_households$Acorn)
+informations_households$Acorn<-as.factor(informations_households$Acorn)
+informations_households$Acorn_grouped<-as.character(informations_households$Acorn_grouped)
+informations_households$Acorn_grouped<-as.factor(informations_households$Acorn_grouped )
+```
+
+
+
+
+Un cop tractades les dades, mirem si conté valors buits.
+
+
+
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(informations_households))
+colSums(informations_households=="")
+
+```
+Veiem que cap variable cont? valors buits.
+
+##Gr?fic
+
+
+```{r}
+plot(x=informations_households$stdorToU,col=colors()[591:600])
+```
+
+```{r}
+prop.table(table(informations_households$stdorToU))*100
+
+```
+
+
+
+```{r}
+plot(x=informations_households$Acorn, col=colors()[109:300])
+plot(x=informations_households$Acorn, col=colors()[588:1300])
+
+```
+
+```{r}
+prop.table(table(informations_households$Acorn))*100
+
+```
+
+```{r}
+plot(x=informations_households$Acorn_grouped,col=colors()[591:600])
+
+```
+
+```{r}
+prop.table(table(informations_households$Acorn_grouped))*100
+
+```
+
+```{r}
+plot(x=informations_households$file,col=colors()[364:600])
+
+```
+
+```{r}
+prop.table(table(informations_households$file))*100
+
+```
+
+
+
+```{r}
+#Acorn-stdorToU
+
+#Taula freq??ncies
+table(informations_households$Acorn,informations_households$stdorToU)
+#Taules creuades relatives percentatge total
+prop.table(table(informations_households$Acorn,informations_households$stdorToU))*100
+#Taules creuades relatives percentatge per files
+prop.table(table(informations_households$Acorn,informations_households$stdorToU),1)
+#Taules creuades relatives percentatge per columnes
+prop.table(table(informations_households$Acorn,informations_households$stdorToU),2)
+
+
+```
+
+
+```{r}
+#Acorn_grouped-stdorToU
+
+#Taula freq??ncies
+table(informations_households$Acorn_grouped,informations_households$stdorToU)
+#Taules creuades relatives percentatge total
+prop.table(table(informations_households$Acorn_grouped,informations_households$stdorToU))*100
+#Taules creuades relatives percentatge per files
+prop.table(table(informations_households$Acorn_grouped,informations_households$stdorToU),1)
+#Taules creuades relatives percentatge per columnes
+prop.table(table(informations_households$Acorn_grouped,informations_households$stdorToU),2)
+
+
+```
+
+
+
+
+
+
+```{r}
+
+ggplot(informations_households,aes(x=Acorn,fill=Acorn_grouped))+geom_bar()
+
+```
+
+```{r}
+ggplot(informations_households,aes(x=file,fill=Acorn))+geom_bar()
+
+```
+
+
+```{r}
+ggplot(informations_households,aes(x=Acorn_grouped,fill=stdorToU))+geom_bar()
+ggplot(informations_households,aes(x=Acorn_grouped,fill=stdorToU))+geom_bar(position="fill")
+
+```
+
+
+
+
+
+
+#Arxiu acorn_details
+
+```{r}
+#Carreguem arxiu de dades
+acorn_details <-read.csv(file="dades/4acorn_details.csv", header=TRUE, sep=",")
+```
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(acorn_details)
+# Resum 
+summary(acorn_details)
+# Tipus de dades 
+str(acorn_details)
+
+```
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(acorn_details))
+colSums(acorn_details=="")
+
+```
+
+
+```{r}
+
+ggplot(acorn_details,aes(x=CATEGORIES,fill=MAIN.CATEGORIES))+geom_bar()
+
+```
+
+```{r}
+
+ggplot(acorn_details,aes(x=REFERENCE,fill=MAIN.CATEGORIES))+geom_bar()
+
+```
+
+
+#Arxiu weather daily darksky
+
+```{r}
+#Carreguem arxiu de dades
+weather_daily <-read.csv(file="dades/5weather_daily_darksky.csv", header=TRUE, sep=",")
+```
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(weather_daily)
+# Resum 
+summary(weather_daily)
+# Tipus de dades 
+str(weather_daily)
+
+```
+
+En primer lloc, revisem que tots els tipus de dades siguin correctes i que no hi hagi dades errònies a partir del resum estadístic.
+Veiem que les dates les agafa com un factor, així que les convertirem a data (timestamp). A més a més, com que es repeteix la data a cada variable “Time”, decidim quedar-nos tant sols amb la hora, ja que tenim la variable data.
+Els valors de les variables quantitatives no estan fora de rang i comprovem que els valors de les variables qualitatives no estiguin repetits.  
+
+
+
+```{r}
+summary(weather_daily$icon)
+summary(weather_daily$precipType)
+summary(weather_daily$summary)
+
+```
+
+
+```{r}
+#Valors atipics
+
+
+library(sfsmisc)
+
+mult.fig(6)
+
+boxplot(weather_daily$temperatureMax, main="temperature Max",horizontal = TRUE)$out
+boxplot(weather_daily$temperatureMin, main="temperature Min",horizontal = TRUE)$out
+boxplot(weather_daily$apparentTemperatureMax, main="apparent temperature max",horizontal = TRUE)$out
+boxplot(weather_daily$apparentTemperatureMin, main="apparent temperature min",horizontal = TRUE)$out
+
+boxplot(weather_daily$temperatureHigh, main="temperature high",horizontal = TRUE)$out
+boxplot(weather_daily$temperatureLow, main="temperature low",horizontal = TRUE)$out
+boxplot(weather_daily$apparentTemperatureHigh, main="apparent temperature high",horizontal = TRUE)$out
+boxplot(weather_daily$apparentTemperatureLow, main="apparent temperature low",horizontal = TRUE)$out
+
+boxplot(weather_daily$dewPoint, main="dew point",horizontal = TRUE)$out
+boxplot(weather_daily$cloudCover, main="cloud cover",horizontal = TRUE)$out
+boxplot(weather_daily$windBearing, main="wind Bearing",horizontal = TRUE)$out
+boxplot(weather_daily$windSpeed, main="windSpeed",horizontal = TRUE)$out
+boxplot(weather_daily$pressure, main="pressure",horizontal = TRUE)$out
+boxplot(weather_daily$visibility, main="visibility",horizontal = TRUE)$out
+boxplot(weather_daily$uvIndex, main="uv index",horizontal = TRUE)$out
+boxplot(weather_daily$moonPhase, main="moonphase",horizontal = TRUE)$out
+
+
+#no hi ha cap valor que sobresurti del normal.
+
+```
+
+
+
+
+
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(weather_daily))
+colSums(weather_daily=="")
+
+```
+
+
+Passem a comprovar si conté valors buits i veiem que conté valors buits a les variables cloudCover, uvIndex i uvIndexTime .
+
+```{r}
+weather_daily[is.na(weather_daily$cloudCover),]
+weather_daily[is.na(weather_daily$uvIndex),]
+weather_daily[weather_daily$uvIndexTime == "",]
+
+
+```
+Veiem que el valor buit es tracta de la mateixa l?nia
+
+
+
+
+```{r}
+library(dplyr)
+
+#seleccionem atributs numerics sense NA per veure'n la correlació:
+
+weather_daily_num<- select(weather_daily[!is.na(weather_daily$uvIndex),], temperatureMax, temperatureMin, temperatureHigh,temperatureLow,apparentTemperatureMax, apparentTemperatureMin, apparentTemperatureLow, apparentTemperatureHigh, windBearing, dewPoint, cloudCover,windSpeed , pressure,  visibility, humidity,   uvIndex,  moonPhase )
+
+
+cor(weather_daily_num$cloudCover,weather_daily_num)
+cor(weather_daily_num$uvIndex,weather_daily_num)
+
+
+
+cor (weather_daily_num$temperatureHigh,weather_daily_num)
+cor (weather_daily_num$windBearing,weather_daily_num)
+
+```
+
+
+uvIndex també es podria predir amb un arbre ( sent factor)
+
+```{r}
+X<- select(weather_daily[!is.na(weather_daily$uvIndex),], -temperatureMaxTime, -temperatureMinTime, -temperatureHighTime,-temperatureLowTime,-apparentTemperatureMaxTime, -apparentTemperatureMinTime, -apparentTemperatureLowTime, -apparentTemperatureHighTime, -uvIndexTime, -time, - sunsetTime, - sunriseTime, -uvIndex, -temperatureHigh,-temperatureLow,-apparentTemperatureMax, -apparentTemperatureMin, -apparentTemperatureLow, -apparentTemperatureHigh ) #Fem dataset sense les dates i sense uvIndex
+
+
+y<-weather_daily$uvIndex[!is.na(weather_daily$uvIndex)]
+y<- as.factor(y)
+
+X_train<-X[1:588,]
+X_test<-X[589:881,]
+
+y_train<- y[1:588]
+y_test<- y[589:881]
+
+```
+
+
+
+
+
+```{r}
+#Regressió lineal múltiple per predir els valors de CloudCover i uvIndex.
+#Cloudcover
+model_prediccio_cloudCover<-lm(cloudCover~ humidity + temperatureHigh + visibility  + windSpeed + pressure + windBearing + moonPhase, data=weather_daily[!is.na(weather_daily$cloudCover),])
+
+summary(model_prediccio_cloudCover)
+
+#uvindex
+model_prediccio_uvIndex<- lm(uvIndex~ temperatureHigh + humidity + visibility  + windSpeed + pressure + windBearing + moonPhase ,data=weather_daily[!is.na(weather_daily$cloudCover),] )
+summary(model_prediccio_uvIndex)
+```
+
+
+```{r}
+#Predim valors
+predit_cloudCover<-predict(model_prediccio_cloudCover,weather_daily[is.na(weather_daily$cloudCover),])
+
+predit_uvIndex<- round(predict(model_prediccio_uvIndex,weather_daily[is.na(weather_daily$uvIndex),] ))
+
+predit_cloudCover
+predit_uvIndex
+
+
+```
+
+```{r}
+#Assignem els valors predits a les corresponents variables NA
+
+weather_daily$cloudCover[is.na(weather_daily$cloudCover)]<- predit_cloudCover
+
+weather_daily$uvIndex[is.na(weather_daily$uvIndex)]<- predit_uvIndex
+
+
+```
+
+
+Comprovem
+
+```{r}
+colSums(is.na(weather_daily))
+```
+
+
+Abans de tractar els nuls de uvindextime, transformem algunes variables
+
+
+```{r}
+
+#Convertim la variable temperatureMaxTime en format timedate(data i hora) enlloc de factor 
+weather_daily$temperatureMaxTime<-as.timeDate(weather_daily$temperatureMaxTime) 
+#Creem una variable per guardar tant sols l'hora (sense la data)
+weather_daily$temperatureMaxHour<-hour(weather_daily$temperatureMaxTime)
+
+#Fem el mateix amb les altres variables:
+
+#time
+weather_daily$time<-as.timeDate(weather_daily$time) 
+weather_daily$date<-as.Date(weather_daily$time)
+
+
+#temperatureMinTime
+weather_daily$temperatureMinTime<-as.timeDate(weather_daily$temperatureMinTime) 
+weather_daily$temperatureMinHour<-hour(weather_daily$temperatureMinTime)
+
+#apparentTemperatureMinTime
+weather_daily$apparentTemperatureMinTime<-as.timeDate(weather_daily$apparentTemperatureMinTime) 
+weather_daily$apparentTemperatureMinHour<-hour(weather_daily$apparentTemperatureMinTime)
+
+#apparentTemperatureMaxTime
+
+weather_daily$apparentTemperatureMaxTime<-as.timeDate(weather_daily$apparentTemperatureMaxTime)
+weather_daily$apparentTemperatureMaxHour<-hour(weather_daily$apparentTemperatureMaxTime)
+
+#apparentTemperatureHighTime
+weather_daily$apparentTemperatureHighTime<-as.timeDate(weather_daily$apparentTemperatureHighTime) 
+weather_daily$apparentTemperatureHighHour<-hour(weather_daily$apparentTemperatureHighTime)
+
+#apparentTemperatureLowTime     
+weather_daily$apparentTemperatureLowTime<-as.timeDate(weather_daily$apparentTemperatureLowTime) 
+weather_daily$apparentTemperatureLowHour<-hour(weather_daily$apparentTemperatureLowTime)
+
+#sunsetTime
+weather_daily$sunsetTime<-as.timeDate(weather_daily$sunsetTime) 
+weather_daily$sunsetTimeHour<-hour(weather_daily$sunsetTime)
+
+#sunriseTime
+weather_daily$sunriseTime<-as.timeDate(weather_daily$sunriseTime) 
+weather_daily$sunriseTimeHour<-hour(weather_daily$sunriseTime)
+
+#temperatureHighTime
+weather_daily$temperatureHighTime<-as.timeDate(weather_daily$temperatureHighTime) 
+weather_daily$temperatureHighHour<-hour(weather_daily$temperatureHighTime)
+
+#temperatureLowTime
+weather_daily$temperatureLowTime<-as.timeDate(weather_daily$temperatureLowTime) 
+weather_daily$temperatureLowHour<-hour(weather_daily$temperatureLowTime)
+
+#uvIndexTime
+weather_daily$uvIndexTime<-as.timeDate(weather_daily$uvIndexTime) 
+weather_daily$uvIndexHour<-hour(weather_daily$uvIndexTime)
+
+
+
+
+
+#Com que cada fila (amb totes les variables) ?s el mateix dia, llavors es pot simplificar i crear una ?nica variable amb la data i tamb? crear unes "subvariables" per l'any i mes. 
+#Creem variables Data, Any, Mes 
+weather_daily$year<-year(weather_daily$date)
+weather_daily$month<-month(weather_daily$date)
+weather_daily$weekday<-wday(weather_daily$date, label=FALSE, week_start = 1)#Week_start=-1 means Monday.  7 means sunday.
+
+#Comprovem les variables que hem creat:
+str(weather_daily)
+
+
+```
+Podem eliminar totes les variables "time"
+
+```{r}
+weather_daily<- select(weather_daily, -temperatureMaxTime, -temperatureMinTime, -temperatureHighTime,-temperatureLowTime,-apparentTemperatureMaxTime, -apparentTemperatureMinTime, -apparentTemperatureLowTime, -apparentTemperatureHighTime, -uvIndexTime, -time, - sunsetTime, - sunriseTime)
+
+```
+
+```{r}
+str(weather_daily)
+```
+
+
+
+
+```{r}
+#Ordenem les dades de weather_daily per data
+weather_daily<-weather_daily[order(weather_daily$date),]
+
+```
+
+
+
+
+Assignem valor a l'hora NA de uvindexHour
+
+```{r}
+
+plot(weather_daily$uvIndexHour, weather_daily$uvIndex)
+
+
+```
+Veiem que els uvIndex=2 s'han produit a les hores 9,10,11,12.
+
+
+```{r}
+weather_daily$uvIndexHour[is.na(weather_daily$uvIndexHour)]<- 11
+
+```
+
+
+##Gràfics
+
+
+```{r}
+
+ggplot(weather_daily,aes(x=temperatureMaxHour,fill=temperatureMax))+geom_bar()
+
+ggplot(weather_daily,aes(x=temperatureMaxHour,fill=icon))+geom_bar()
+
+```
+
+```{r}
+
+plot(weather_daily$date, weather_daily$temperatureMax , type="p", col="red", ylab="Temperature", xlab="Date")
+points(weather_daily$date, weather_daily$temperatureMin , col="blue")
+legend("topright",legend=c("Max", "Min"), col=c("red", "blue"), pch=c(1,1))
+
+
+plot(weather_daily$date, weather_daily$temperatureMax , type="l", col="red", ylab="Temperature", xlab="Date")
+lines(weather_daily$date, weather_daily$temperatureMin , col="blue")
+legend("topright",legend=c("Max", "Min"), col=c("red", "blue"), pch=c(1,1))
+
+
+plot(weather_daily$date, weather_daily$visibility , type="p")
+
+plot(weather_daily$date, weather_daily$cloudCover , type="p")
+plot(weather_daily$date, weather_daily$windBearing , type="p")
+
+
+
+```
+
+
+
+# UK bank holidays
+
+```{r}
+#Carreguem arxiu de dades
+uk_bank_holidays <-read.csv(file="dades/8uk_bank_holidays.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
+```
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(uk_bank_holidays)
+# Resum 
+summary(uk_bank_holidays)
+# Tipus de dades 
+str(uk_bank_holidays)
+
+
+summary(uk_bank_holidays$Type)
+
+```
+Veiem que dos noms estan repetits:  
+New Years Day i New Year?s Day (substitute day) 
+Spring bank holiday i Spring bank holiday (substitute day) 
+                                           
+Els unifiquem
+
+```{r}
+
+uk_bank_holidays$Type[uk_bank_holidays$Type=="Spring bank holiday (substitute day)"] <- "Spring bank holiday"
+
+uk_bank_holidays$Type[uk_bank_holidays$Type=="Spring bank holiday (substitute day)"] <- "Spring bank holiday"
+
+uk_bank_holidays$Type[uk_bank_holidays$Type== "New Year?s Day (substitute day)"] <- "New Years Day"
+uk_bank_holidays$Type[uk_bank_holidays$Type== "New Year?s Day"] <- "New Years Day"
+
+```
+
+Factoritzem la variable Type i convertim a data la variable Bank.holidays
+
+```{r}
+
+uk_bank_holidays$Bank.holidays<- as.Date(uk_bank_holidays$Bank.holidays)
+
+uk_bank_holidays$Type<- as.factor(uk_bank_holidays$Type)
+```
+
+
+Valors buits
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(uk_bank_holidays))
+```
+
+```{r}
+
+#Convertim dates de factor a date
+uk_bank_holidays$Bank.holidays<-as.Date(uk_bank_holidays$Bank.holidays)
+
+#Renombrem columnes
+names(uk_bank_holidays)<-c("day", "holidayType")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Daily dataset csv (resum)
+
+```{r}
+#Carreguem arxiu de dades
+daily_dataset_csv <-read.csv(file="dades/3daily_dataset_csv.csv", header=TRUE, sep="," , stringsAsFactors = FALSE)
+```
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(daily_dataset_csv)
+# Resum 
+summary(daily_dataset_csv)
+# Tipus de dades 
+str(daily_dataset_csv)
+
+```
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(daily_dataset_csv))
+#colSums(daily_dataset_csv=="")
+```
+
+```{r}
+#Comprovem els que tenen valor na
+daily_dataset_csv[is.na(daily_dataset_csv$energy_median),]
+
+
+```
+
+
+
+Carreguem fitxer hh_block dataset per comprovar si en aquell dataset apareixen els registres que tenen na a daily_dataset. 
+
+El fitxer que carreguem és el que ja ha estat preparat.
+
+
+```{r}
+hhblock_dataset <-read.csv(file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/hhblock_dataset.csv", header=TRUE, sep=",")
+```
+
+```{r}
+str(hhblock_dataset)
+```
+
+
+
+
+```{r}
+
+#Busquem els valors que tenen NA a hh_hourly, per? si que tenim els id per? no les dades en aquestes dates, per tant els eliminem ( hem vist que s?n dates que estan al comen?ament o fi de les mesures de cada id)
+
+
+id_buits<-daily_dataset_csv$LCLid[is.na(daily_dataset_csv$energy_sum)]
+dia_buits<-daily_dataset_csv$day[is.na(daily_dataset_csv$energy_sum)]
+
+nfiles<-nrow(daily_dataset_csv[(is.na(daily_dataset_csv$energy_sum)),])
+
+for (i in 1:nfiles){
+
+  hhblock_dataset$total[hhblock_dataset$LCLid==id_buits[i] && hhblock_dataset$day==dia_buits[i]]
+  hhblock_dataset[hhblock_dataset$LCLid==id_buits[i] && hhblock_dataset$day==dia_buits[i],]
+
+}
+#Veiem que no hi ha total perque no existeix
+
+
+
+
+```
+
+Comprovem manualment que no existeixen (per assegurar)
+
+```{r}
+
+#Busquem els valors buits en altres datasets per saber si podem accedir a la informaci?
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC000410" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC002110" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC001065" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC001229" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC001278" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC000393" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC002014" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC000619" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC002155" && hhblock_dataset$day=="2012-12-18"),]
+hhblock_dataset[(hhblock_dataset$LCLid=="MAC005370" && hhblock_dataset$day=="2012-12-18"),]
+
+#Veiem que el valor NA està a la punta 
+
+daily_dataset_csv[(daily_dataset_csv$LCLid=="MAC000410"),]
+
+
+
+```
+
+Veiem que aquests valors no existeixen al fitxer daily.
+veiem que justament  els que tenen energy_count= 0, son els que tenen NA a totes les altres dades de l'energia. Podem fer 2 coses: eliminar els registres o posar tots els NA a 0 ( ja que count =0 ens vol dir que en cap moment del dia s'ha registrat energia).
+Com que aquestes dades no ens aporten res, ja que estan situades al principi o final de les mostres, doncs les eliminem
+
+Eliminem valors buits de energy_median, energy_mean, energy_max, energy_std, energy_sum i energy_min (que tots els valors buits coincideixen en files).
+Els valors buits restants de energy_std els passarem per alt ja que és una variable que en principi no necessitem i si la necessitessim la podríem calcular.
+
+
+```{r}
+library(tidyr)
+
+#Eliminem valors buits de energy_mean (que són els mateixos que energy_sum, enenergy_min...)
+
+daily_dataset_csv<-drop_na(daily_dataset_csv, energy_mean)
+
+```
+
+
+```{r}
+#Comprovem valors buits
+colSums(is.na(daily_dataset_csv))
+
+```
+
+
+Preparem variables
+
+```{r}
+
+#Convertim dates de factor a date
+daily_dataset_csv$day<-as.Date(daily_dataset_csv$day)
+#Comprovem
+str(daily_dataset_csv)
+
+```
+
+
+Fem diagrames de caixa per comprovar valors numèrics
+
+```{r}
+
+#par(mfrow=c(2,1)) #Dividim finestra en 2 files i 1 columna
+library(sfsmisc)
+
+mult.fig(7)
+
+boxplot(daily_dataset_csv$energy_max, main="Max",horizontal = TRUE)
+boxplot(daily_dataset_csv$energy_min, main="Min",horizontal = TRUE)
+
+boxplot(daily_dataset_csv$energy_median, main="Median",horizontal = TRUE)
+boxplot(daily_dataset_csv$energy_mean, main="Mean",horizontal = TRUE)
+
+boxplot(daily_dataset_csv$energy_std, main="Std",horizontal = TRUE)
+boxplot(daily_dataset_csv$energy_sum, main="Sum",horizontal = TRUE)
+
+boxplot(daily_dataset_csv$energy_count, main="Count",horizontal = TRUE)
+
+
+
+
+```
+
+
+Veiem que es consideren molts outliers, tot i que no sembla haver-hi cap valor atípic. Sí que podem veure que per exemple a energy_max hi ha alguns valors que superen 10 que estan més separats dels altres valors, i igual veiem amb count i std.
+
+
+
+
+
+
+```{r}
+#Ordenem les dades per data
+daily_dataset_csv<-daily_dataset_csv[order(daily_dataset_csv$day),]
+
+```
+
+Gràfics
+
+```{r}
+plot(daily_dataset_csv$day, daily_dataset_csv$energy_mean , ylab="Energy mean", xlab="Date")
+
+```
+
+
+```{r}
+plot(daily_dataset_csv$day, daily_dataset_csv$energy_sum , ylab="Energy sum", xlab="Date")
+```
+
+
+
+
+
+
+
+#Daily_dataset (blocs)
+```{r}
+library(timereg)
+library(mets)
+library(data.table)
+library(timeDate)
+#Creem una llista amb els noms dels arxius que volem carregar que es troben a la carpeta indicada
+
+files<-list.files(path="dades/3daily_dataset")
+
+#Creem dataframe amb les dades de tots els blocs, 
+daily_dataset <- do.call(rbind, lapply(files, function(x) as.data.frame(fread(x,header = TRUE))))
+head(daily_dataset)
+
+```
+
+
+```{r}
+#Resum dades 
+
+#Dimensio
+dim(daily_dataset)
+# Resum 
+summary(daily_dataset)
+# Tipus de dades 
+str(daily_dataset)
+
+```
+
+Veiem que són els mateixos valors que daily_dataset_csv, per tant, com que ja hem tractat el primer fitxer, doncs obviarem daily_dataset.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Fem dataset total daily:
+
+
+##Daily
+Posem dades de informations households,  weather daily, uk bank holidays i daily 
+
+
+Seleccionem dades que volem de weather
+```{r}
+library(dplyr)
+weather_d<-select(weather_daily, temperatureMax, temperatureMaxHour,temperatureMin, temperatureMinHour, apparentTemperatureMax, apparentTemperatureMaxHour, apparentTemperatureMin, apparentTemperatureMinHour, temperatureHigh, temperatureHighHour, temperatureLow, temperatureLowHour, apparentTemperatureHigh, apparentTemperatureHighHour, apparentTemperatureLow, apparentTemperatureLowHour,windBearing, dewPoint, cloudCover, windSpeed, pressure, humidity, visibility, moonPhase, icon, precipType, summary, uvIndex, uvIndexHour, sunsetTimeHour,sunriseTimeHour ,date,year, month, weekday)
+
+
+```
+
+
+```{r}
+str(weather_d)
+str(daily_dataset_csv)
+```
+
+
+
+```{r}
+
+#Ajuntem datasets daily_dataset i uk_bank_holidays a partir del dia
+daily<-left_join(daily_dataset_csv, uk_bank_holidays)
+
+```
+
+
+
+```{r}
+str(daily)
+
+```
+
+```{r}
+#Com que els dies que no s?n vacances els marca com NA, els convertim en un factor m?s "No Holiday"
+daily$holidayType<-as.character(daily$holidayType)
+daily$holidayType[is.na(daily$holidayType)]="No Holiday"
+daily$holidayType<-as.factor(daily$holidayType)
+```
+
+```{r}
+str(daily)
+```
+
+
+```{r}
+#Afegim variable isHoliday que indica si es un dia de vacances o no
+
+daily$isHoliday[daily$holidayType == "No Holiday"]<-FALSE
+daily$isHoliday[daily$holidayType != "No Holiday"]<-TRUE
+
+```
+
+Descarreguem aquest fitxer
+```{r}
+write.csv(daily, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/daily_consum_holiday.csv")
+
+```
+
+
+```{r}
+#carreguem estacio(season) 
+
+season_arxiu<-read.csv(file="dades/season.csv", header=TRUE, sep=";", stringsAsFactors = FALSE)
+
+```
+
+```{r}
+#Passem variable date a Date
+season_arxiu$date<-as.Date(season_arxiu$date)
+```
+
+
+
+```{r}
+#Renombrem columnes perqu? en els dos datasets la data es digui date
+colnames(daily)[colnames(daily)=="day"]<-"date"
+```
+
+```{r}
+#Afegim variable estacio a daily
+
+library(dplyr)
+daily<-left_join(daily, season_arxiu)
+
+```
+
+
+
+```{r}
+
+daily$season<- as.factor(daily$season)
+
+```
+
+
+
+
+```{r}
+str(daily)
+```
+
+
+```{r}
+write.csv(daily, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/daily_consum_holiday_season.csv")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+#Seleccionem atributs que volem de informations_households
+informations_households_atributs<-select(informations_households, LCLid, stdorToU, Acorn, Acorn_grouped)
+
+```
+
+
+```{r}
+#Ajuntem daily (daily_dataset i uk_holiday) amb information_households
+daily<-left_join(daily, informations_households_atributs)
+
+```
+
+
+```{r}
+str(daily)
+
+```
+
+
+
+```{r}
+write.csv(daily, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/daily_consum_holiday_season_llar.csv")
+
+```
+
+
+
+
+```{r}
+daily_copia<-daily
+```
+
+
+
+
+
+```{r}
+#Ajuntem daily amb weather_d(weather_daily amb els atributs que volem) per data
+
+daily<-left_join(daily, weather_holiday_season)
+
+```
+
+
+```{r}
+str(daily)
+```
+```{r}
+summary(daily)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+colSums(is.na(daily))
+```
+
+
+```{r}
+#Solucionem valors buits year, month i weekday
+library(lubridate)
+daily$year<-year(daily$date)
+daily$month<-month(daily$date)
+daily$weekday<-wday(daily$date)#Week_start=-1 means Monday.  7 means sunday.
+```
+
+```{r}
+colSums(is.na(daily))
+```
+
+
+
+```{r}
+#Eliminem energy_std
+
+daily<-select(daily, -energy_std)
+```
+
+
+
+```{r}
+daily[is.na(daily$uvIndexHour),]
+```
+Tots els valors buits que hi ha (que eren del fitxer weather_daily), corresponen al mateix dia, 28-10-2012
+
+
+Extraiem els valors que podem de weather_hourly
+
+```{r}
+weather_hourly <-read.csv(file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/weather_hourly.csv", header=TRUE, sep=",")
+str(weather_hourly)
+
+
+```
+
+```{r}
+weather_hourly[weather_hourly$date=="2012-10-28", ]
+```
+
+
+
+```{r}
+
+daily$temperatureMax[is.na(daily$uvIndexHour)]<- 9.17
+daily$temperatureMin[is.na(daily$uvIndexHour)]<- 1.43
+
+
+daily$temperatureMaxHour[is.na(daily$uvIndexHour)]<- 15
+daily$temperatureMinHour[is.na(daily$uvIndexHour)]<- 4
+
+daily$visibility[is.na(daily$uvIndexHour)]<- mean(  weather_hourly$visibility[weather_hourly$date=="2012-10-28" ]  )
+daily$windBearing[is.na(daily$uvIndexHour)]<- mean(  weather_hourly$windBearing[weather_hourly$date=="2012-10-28" ]  )
+
+
+daily$dewPoint[is.na(daily$uvIndexHour)]<- mean(  weather_hourly$dewPoint[weather_hourly$date=="2012-10-28" ]  )
+daily$pressure[is.na(daily$uvIndexHour)]<-mean(  weather_hourly$pressure[weather_hourly$date=="2012-10-28" ]  )
+  
+daily$apparentTemperatureMax[is.na(daily$uvIndexHour)]<- 6.89
+daily$apparentTemperatureMin[is.na(daily$uvIndexHour)]<- (-0.94)
+daily$apparentTemperatureMaxHour[is.na(daily$uvIndexHour)]<-17
+daily$apparentTemperatureMinHour[is.na(daily$uvIndexHour)]<-4
+
+daily$windSpeed[is.na(daily$uvIndexHour)]<- mean(  weather_hourly$windSpeed[weather_hourly$date=="2012-10-28" ]  )
+daily$precipType[is.na(daily$uvIndexHour)]<- "rain"
+daily$icon[is.na(daily$uvIndexHour)]<- "partly-cloudy-day"
+daily$humidity[is.na(daily$uvIndexHour)]<- mean(  weather_hourly$humidity[weather_hourly$date=="2012-10-28" ]  )
+daily$summary[is.na(daily$uvIndexHour)]<-"Partly cloudy throughout the day."
+
+```
+
+```{r}
+
+
+#Comprovem quins són els vaors que ara ens queden buits: 
+colSums(is.na(daily))
+
+
+```
+Veiem que ens falta temp. High i Low i les hore i apparent_temp highi low i les hores. També cloudcover, moonphase, uvindex i uvindexhour, sunset i sunrise.
+
+Per les temperatures, per a high agafarem les temperatures de Max i per a low agafarem les temperatures de min.
+
+```{r}
+
+daily$temperatureHigh[is.na(daily$uvIndexHour)]<- 9.17
+daily$temperatureLow[is.na(daily$uvIndexHour)]<- 1.43
+
+daily$temperatureHighHour[is.na(daily$uvIndexHour)]<- 15
+daily$temperatureLowHour[is.na(daily$uvIndexHour)]<- 4
+
+daily$apparentTemperatureHigh[is.na(daily$uvIndexHour)]<- 6.89
+daily$apparentTemperatureLow[is.na(daily$uvIndexHour)]<- (-0.94)
+daily$apparentTemperatureHighHour[is.na(daily$uvIndexHour)]<-17
+daily$apparentTemperatureLowHour[is.na(daily$uvIndexHour)]<-4
+
+
+```
+
+
+Per cloudcover buscuqem quin valor tenen els dies amb icon partlycloudy, pels altres fem la mitjana del dia anterior amb el seguent.
+
+
+
+```{r}
+
+weather_daily[weather_daily$date=="2012-10-29", ]
+weather_daily[weather_daily$date=="2012-10-27", ]
+
+```
+
+
+
+```{r}
+#Agafem els valors del dia abans o després:
+daily$sunriseTimeHour[is.na(daily$uvIndexHour)]<- 6
+daily$sunsetTimeHour[is.na(daily$uvIndexHour)]<-  16
+  
+
+daily$moonPhase[is.na(daily$uvIndexHour)]<- 0.48
+daily$cloudCover[is.na(daily$uvIndexHour)]<- mean(weather_daily$cloudCover[weather_daily$summary=="Partly cloudy throughout the day." & weather_daily$icon=="partly-cloudy-day"])
+
+daily$uvIndex[is.na(daily$uvIndexHour)]<- 1
+daily$uvIndexHour[is.na(daily$uvIndexHour)]<- 9 
+
+
+```
+
+Comprovem que no hi hagi valors buits:
+```{r}
+colSums(is.na(daily))
+```
+
+
+
+
+
+```{r}
+#Comprovem noms variables dataset daily
+names(daily)
+
+```
+
+
+
+#Ens descarreguem (exportem) tots els arxius nets i el fitxer total. 
+
+
+
+
+```{r}
+write.csv(informations_households, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/informations_households.csv")
+write.csv(weather_daily, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/weather_daily.csv")
+write.csv(uk_bank_holidays,file= "C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/uk_bank_holidays.csv" )
+write.csv(daily_dataset_csv, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/daily_dataset_csv.csv" )
+
+#Dataset total
+write.csv(daily,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/daily.csv" )
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+#Renombrem columnes perqu? en els dos datasets la data es digui day
+colnames(weather_d)[colnames(weather_d)=="date"]<-"day"
+```
+
+
+```{r}
+
+#Ajuntem datasets daily_dataset i uk_bank_holidays a partir del dia
+weather_holiday_season<-left_join(weather_d, uk_bank_holidays)
+
+```
+
+
+```{r}
+#Com que els dies que no s?n vacances els marca com NA, els convertim en un factor m?s "No Holiday"
+weather_holiday_season$holidayType<-as.character(weather_holiday_season$holidayType)
+weather_holiday_season$holidayType[is.na(weather_holiday_season$holidayType)]="No Holiday"
+weather_holiday_season$holidayType<-as.factor(weather_holiday_season$holidayType)
+```
+
+
+```{r}
+#Afegim variable isHoliday que indica si es un dia de vacances o no
+
+weather_holiday_season$isHoliday[weather_holiday_season$holidayType == "No Holiday"]<-FALSE
+weather_holiday_season$isHoliday[weather_holiday_season$holidayType != "No Holiday"]<-TRUE
+
+```
+
+
+```{r}
+#Passem variable date a Date
+#season_arxiu$date<-as.Date(season_arxiu$date)
+```
+
+
+```{r}
+#Renombrem columnes perqu? en els dos datasets la data es digui date
+colnames(weather_holiday_season)[colnames(weather_holiday_season)=="day"]<-"date"
+```
+
+```{r}
+#Afegim variable estacio a daily
+
+library(dplyr)
+weather_holiday_season<-left_join(weather_holiday_season, season_arxiu)
+
+```
+
+
+```{r}
+weather_holiday_season$season<-as.factor(weather_holiday_season$season)
+
+```
+
+
+```{r}
+weather_holiday_season[is.na(weather_holiday_season$season),]
+```
+
+
+
+Eliminem els na de season tota la fila, ja que no tenim les dades de consum. 
+
+```{r}
+library(tidyr)
+weather_holiday_season <-drop_na(weather_holiday_season,season)
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+#Descarreguem datasets per a l'analisi
+write.csv(informations_households, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/informations_households.csv")
+write.csv(weather_d, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/weather_d.csv")
+write.csv(weather_holiday_season,file= "C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/weather_holiday_season.csv" )
+write.csv(daily, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/daily.csv" )
+write.csv(daily_copia,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/daily_copia.csv" )
+
+
+```
+
+```{r}
+write.csv(informations_households_atributs,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/informations_households_atributs.csv" )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+#Altres
+```{r}
+#library(dplyr)
+#daily_grouped_weekday<-daily[!is.na(daily$energy_mean)] %>% group_by(weekday)%>% summarise(avg=mean(energy_mean))
+```
+
+```{r}
+#plot(daily_grouped_weekday)
+```
+
+
+```{r}
+#plot(daily$weekday,daily$energy_mean)
+```
+
+
+
+```{r}
+
+#library(C50)
+#model_arbre_uvIndex<-C50::C5.0(X_train,y_train)
+#model_arbre_uvIndex
+
+```
+```{r}
+#Presentem al model creat les dades guardades per realitzar la predicció i mesurar la precisió de l'arbre
+#predicted_model_arbre_uv <- predict( model_arbre_uvIndex, X_test, type="class" )
+#print(sprintf("La precisió de l'arbre és: %.4f %%",100*sum(predicted_model_arbre_uv == y_test) / length(predicted_model_arbre_uv)))
+
+#mat_conf_arbre_uv<-table(y_test,Predicted=predicted_model_arbre_uv)
+#mat_conf_arbre_uv
+```
+
+
+```{r}
+#Afegim variable isHoliday que indica si es un dia de vacances o no
+
+#for (i in 1:(nrow(daily))){
+#  if (daily$holidayType[i]== "No Holiday"){
+#    daily$isHoliday[i]=FALSE
+#  }else{
+#   daily$isHoliday[i]=TRUE
+#  }
+#}
+
+```
+

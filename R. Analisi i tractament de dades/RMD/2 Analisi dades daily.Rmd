@@ -1,0 +1,1691 @@
+---
+title: "Analisi dades daily"
+author: "Laura Guzman"
+date: "1 novembre de 2019"
+output:
+  html_document:
+    toc: yes
+---
+
+```{r}
+library(dplyr)
+library(stats)
+```
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#Carreguem les dades
+```{r}
+#Carreguem datasets per a l'analisi
+informations_households <-read.csv( file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/informations_households.csv",header=TRUE, sep=",", stringsAsFactors = FALSE)
+weather_d <-read.csv( file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/weather_d.csv",header=TRUE, sep=",", stringsAsFactors = FALSE)
+weather_holiday_season <-read.csv(file= "C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/weather_holiday_season.csv" ,header=TRUE, sep=",", stringsAsFactors = FALSE)
+daily<- read.csv( file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/daily.csv" ,header=TRUE, sep=",", stringsAsFactors = FALSE)
+daily_copia<-read.csv(file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/daily_copia.csv" ,header=TRUE, sep=",", stringsAsFactors = FALSE)
+
+informations_households_atributs <- read.csv(file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Analisi diari/Informations_households_atributs.csv" ,header=TRUE, sep=",", stringsAsFactors = FALSE)
+
+
+```
+
+
+
+
+```{r}
+#daily$weekday<- weekdays(daily$date)
+library(lubridate)
+daily$weekday<-wday(daily$date, week_start = getOption("lubridate.week.start", 1))
+```
+
+#Estadistics
+
+Basics
+```{r}
+str(daily_copia)
+```
+Com que hem hagut de tornat a carregar el fitxer, primer modifiquem les variables que no estan en el seu tipus correcte:
+
+```{r}
+daily_copia$date <- as.Date(daily_copia$date)
+daily_copia$holidayType <- as.factor(daily_copia$holidayType)
+daily_copia$isHoliday <- as.factor(daily_copia$isHoliday )
+daily_copia$season <- as.factor(daily_copia$season)
+daily_copia$stdorToU <- as.factor(daily_copia$stdorToU)
+daily_copia$Acorn <- as.factor(daily_copia$Acorn)
+daily_copia$Acorn_grouped <- as.factor(daily_copia$Acorn_grouped)
+
+daily_copia<-select(daily_copia,-X)
+
+str(daily_copia)
+
+```
+
+```{r}
+str(informations_households)
+
+```
+
+```{r}
+informations_households$stdorToU <- as.factor(informations_households$stdorToU)
+informations_households$Acorn <- as.factor(informations_households$Acorn)
+informations_households$Acorn_grouped <- as.factor(informations_households$Acorn_grouped)
+
+informations_households<-select(informations_households,-X)
+
+
+str(informations_households)
+```
+
+
+
+```{r}
+str(weather_holiday_season)
+```
+
+
+
+```{r}
+weather_holiday_season$icon <- as.factor(weather_holiday_season$icon)
+weather_holiday_season$precipType <- as.factor(weather_holiday_season$precipType)
+weather_holiday_season$summary <- as.factor(weather_holiday_season$summary)
+weather_holiday_season$year <- as.factor(weather_holiday_season$year)
+weather_holiday_season$month <- as.factor(weather_holiday_season$month)
+weather_holiday_season$weekday <- as.factor(weather_holiday_season$weekday)
+weather_holiday_season$holidayType <- as.factor(weather_holiday_season$holidayType)
+weather_holiday_season$isHoliday <- as.factor(weather_holiday_season$isHoliday)
+weather_holiday_season$season <- as.factor(weather_holiday_season$season)
+weather_holiday_season$uvIndex <- as.factor(weather_holiday_season$uvIndex)
+weather_holiday_season$sunsetTimeHour <- as.factor(weather_holiday_season$sunsetTimeHour)
+weather_holiday_season$sunriseTimeHour <- as.factor(weather_holiday_season$sunriseTimeHour)
+weather_holiday_season$date <- as.Date(weather_holiday_season$date)
+
+weather_holiday_season<-select(weather_holiday_season,-X)
+
+
+str(weather_holiday_season)
+
+```
+
+
+
+```{r}
+str(weather_d)
+str(daily)
+```
+```{r}
+weather_d$icon <- as.factor(weather_d$icon)
+weather_d$precipType <- as.factor(weather_d$precipType)
+weather_d$summary <- as.factor(weather_d$summary)
+weather_d$year <- as.factor(weather_d$year)
+weather_d$month <- as.factor(weather_d$month)
+weather_d$weekday <- as.factor(weather_d$weekday)
+weather_d$uvIndex <- as.factor(weather_d$uvIndex)
+weather_d$sunsetTimeHour <- as.factor(weather_d$sunsetTimeHour)
+weather_d$sunriseTimeHour <- as.factor(weather_d$sunriseTimeHour)
+weather_d$date <- as.Date(weather_d$day)
+
+
+daily$icon <- as.factor(daily$icon)
+daily$precipType <- as.factor(daily$precipType)
+daily$summary <- as.factor(daily$summary)
+daily$year <- as.factor(daily$year)
+daily$month <- as.factor(daily$month)
+daily$weekday <- as.factor(daily$weekday)
+daily$holidayType <- as.factor(daily$holidayType)
+daily$isHoliday <- as.factor(daily$isHoliday)
+daily$season <- as.factor(daily$season)
+daily$uvIndex <- as.factor(daily$uvIndex)
+daily$sunsetTimeHour <- as.factor(daily$sunsetTimeHour)
+daily$sunriseTimeHour <- as.factor(daily$sunriseTimeHour)
+daily$date <- as.Date(daily$date)
+daily$tempMaxFactor <- as.factor(daily$tempMaxFactor)
+
+daily$stdorToU <- as.factor(daily$stdorToU)
+daily$Acorn <- as.factor(daily$Acorn)
+daily$Acorn_grouped <- as.factor(daily$Acorn_grouped)
+
+weather_d<-select(weather_d,-X)
+daily<-select(daily,-X)
+
+
+str(weather_d)
+str(daily)
+
+```
+
+
+
+```{r}
+str(informations_households_atributs)
+```
+
+```{r}
+informations_households_atributs$stdorToU <- as.factor(informations_households_atributs$stdorToU)
+informations_households_atributs$Acorn <- as.factor(informations_households_atributs$Acorn)
+informations_households_atributs$Acorn_grouped <- as.factor(informations_households_atributs$Acorn_grouped)
+
+informations_households_atributs<-select(informations_households_atributs,-X)
+
+
+str(informations_households_atributs)
+```
+
+
+
+
+
+
+
+Qualitatiu
+```{r}
+library(knitr)
+kable(summary(daily_copia)[,1:2],digits=2, align='l', caption="Estad??stica descriptiva de variables qualitatives consum diari")
+
+kable(summary(daily_copia)[,10:12],digits=2, align='l', caption="Estad??stica descriptiva de variables qualitatives consum diari")
+kable(summary(informations_households_atributs)[,1:4],digits=2, align='l', caption="Estad??stica descriptiva de variables qualitatives llars")
+kable(summary(weather_holiday_season)[,25:27],digits=2, align='l', caption="Estad??stica descriptiva de variables qualitatives temps diari")
+kable(summary(weather_holiday_season)[,36:38],digits=2, align='l', caption="Estad??stica descriptiva de variables qualitatives temps diari")
+
+
+```
+
+
+Quantitatiu
+```{r}
+kable(summary(daily_copia)[,3:9],digits=2, align='l', caption="Estad??stica descriptiva de variables quantitatives consum diari")
+
+kable(summary(weather_d)[,1:24],digits=2, align='l', caption="Estad??stica descriptiva de variables quantitatives temps diari")
+
+```
+
+
+
+
+#Correlacions
+
+```{r}
+weather_holiday_season$uvIndex<-as.integer(weather_holiday_season$uvIndex)
+weather_holiday_season$sunsetTimeHour<-as.integer(weather_holiday_season$sunsetTimeHour)
+weather_holiday_season$sunriseTimeHour<-as.integer(weather_holiday_season$sunriseTimeHour)
+```
+
+
+```{r}
+str(weather_holiday_season)
+```
+
+```{r}
+#Correlacions amb les pròpies variables del temps:
+
+corrrr<-cor(weather_holiday_season[,c(1:24,28:31)])
+print(corrrr)
+```
+
+```{r}
+
+daily$uvIndex <- as.integer(daily$uvIndex)          
+daily$sunsetTimeHour <- as.integer(daily$sunsetTimeHour)      
+daily$sunriseTimeHour  <- as.integer(daily$sunriseTimeHour)      
+daily$year <- as.integer(daily$year)                  
+daily$month  <- as.integer(daily$month)                 
+daily$weekday  <- as.integer(daily$weekday)   
+
+
+cor(daily[,c(4,5,7, 15:38, 42:48)])
+
+
+
+```
+Copiem les dades a excel i fem un headmap per veure clarament les relacions.
+
+
+```{r}
+
+cor(daily$temperatureMax,daily$energy_max)
+cor(daily$temperatureMax,daily$energy_mean)
+cor(daily$temperatureMax,daily$energy_sum)
+cor(daily$temperatureMax,daily$energy_min)
+
+
+cor(daily$temperatureMin,daily$energy_max)
+cor(daily$temperatureMin,daily$energy_mean)
+cor(daily$temperatureMin,daily$energy_sum)
+cor(daily$temperatureMin,daily$energy_min)
+
+cor(daily$temperatureHigh,daily$energy_max)
+cor(daily$temperatureHigh,daily$energy_mean)
+cor(daily$temperatureHigh,daily$energy_sum)
+cor(daily$temperatureHigh,daily$energy_min)
+
+cor(daily$apparentTemperatureMax,daily$energy_max)
+cor(daily$apparentTemperatureMax,daily$energy_mean)
+cor(daily$apparentTemperatureMax,daily$energy_sum)
+cor(daily$apparentTemperatureMax,daily$energy_min)
+
+
+#Temperatuta té alguna relació amb energy_max, mean and sum.
+```
+
+
+
+
+
+```{r}
+
+cor(daily$windBearing,daily$energy_max)
+cor(daily$dewPoint,daily$energy_mean)#-0.15
+cor(daily$cloudCover,daily$energy_sum)#0.05
+cor(daily$windSpeed,daily$energy_min)
+
+cor(daily$pressure,daily$energy_max)
+cor(daily$humidity,daily$energy_mean)#0.08
+cor(daily$visibility,daily$energy_sum)#-0.05
+cor(daily$moonPhase,daily$energy_min)
+cor(daily$uvIndex,daily$energy_max)#-0.12
+cor(daily$uvIndexHour,daily$energy_mean)#-0.05
+cor(daily$sunsetTimeHour,daily$energy_sum)#-0.14
+cor(daily$sunriseTimeHour,daily$energy_min)
+
+
+
+```
+
+
+
+Qualitatives
+
+
+```{r}
+library(Hmisc)
+
+
+print("holidayType")
+rcorr(daily$energy_sum,daily$holidayType, type="pearson")
+rcorr(daily$energy_mean,daily$holidayType, type="pearson")
+rcorr(daily$energy_max,daily$holidayType, type="pearson")
+rcorr(daily$energy_min,daily$holidayType, type="pearson")
+
+print("isHoliday")
+rcorr(daily$energy_sum,daily$isHoliday, type="pearson")
+rcorr(daily$energy_mean,daily$isHoliday, type="pearson")
+rcorr(daily$energy_max,daily$isHoliday, type="pearson")
+rcorr(daily$energy_min,daily$isHoliday, type="pearson")
+
+
+print("season")
+rcorr(daily$energy_sum,daily$season, type="pearson")
+rcorr(daily$energy_mean,daily$season, type="pearson")
+rcorr(daily$energy_max,daily$season, type="pearson")
+rcorr(daily$energy_min,daily$season, type="pearson")
+
+print("icon")
+rcorr(daily$energy_sum,daily$icon, type="pearson")
+rcorr(daily$energy_mean,daily$icon, type="pearson")
+rcorr(daily$energy_max,daily$icon, type="pearson")
+rcorr(daily$energy_min,daily$icon, type="pearson")
+
+print("preciptype")
+rcorr(daily$energy_sum,daily$precipType, type="pearson")
+rcorr(daily$energy_mean,daily$precipType, type="pearson")
+rcorr(daily$energy_max,daily$precipType, type="pearson")
+rcorr(daily$energy_min,daily$precipType, type="pearson")
+
+print("summary")
+rcorr(daily$energy_sum,daily$summary, type="pearson")
+rcorr(daily$energy_mean,daily$summary, type="pearson")
+rcorr(daily$energy_max,daily$summary, type="pearson")
+rcorr(daily$energy_min,daily$summary, type="pearson")
+
+
+print("stdortou")
+
+rcorr(daily$energy_max,daily$stdorToU, type="pearson")
+rcorr(daily$energy_mean,daily$stdorToU, type="pearson")
+rcorr(daily$energy_min,daily$stdorToU, type="pearson")
+rcorr(daily$energy_sum,daily$stdorToU, type="pearson")
+
+print("acorn grouped")
+
+rcorr(daily$energy_sum,daily$Acorn_grouped, type="pearson")
+rcorr(daily$energy_mean,daily$Acorn_grouped, type="pearson")
+rcorr(daily$energy_max,daily$Acorn_grouped, type="pearson")
+rcorr(daily$energy_min,daily$Acorn_grouped, type="pearson")
+
+print("acorn")
+
+rcorr(daily$energy_sum,daily$Acorn, type="pearson")
+rcorr(daily$energy_mean,daily$Acorn, type="pearson")
+rcorr(daily$energy_max,daily$Acorn, type="pearson")
+rcorr(daily$energy_min,daily$Acorn, type="pearson")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+daily$uvIndex <- as.factor(daily$uvIndex)          
+daily$sunsetTimeHour <- as.factor(daily$sunsetTimeHour)      
+daily$sunriseTimeHour  <- as.factor(daily$sunriseTimeHour)      
+daily$year <- as.factor(daily$year)                  
+daily$month  <- as.factor(daily$month)                 
+daily$weekday  <- as.factor(daily$weekday)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Contrast hipòtesis
+
+##Consumidors Tou consumeixen menys que std? (4.2.1)
+
+Hipòtesi nul·la: mitjana consum (energy_sum) dels consumidors std = mitjana energy_sum dels consumidors Tou.
+Hipòtesi alternativa: mitjana_energy_sum_std>mitjana_energy_sum_tou
+
+
+
+
+```{r}
+#Calculem grups:
+
+grup_std<-daily$energy_sum[daily$stdorToU=="Std"]
+grup_ToU<-daily$energy_sum[daily$stdorToU=="ToU"]
+
+```
+
+```{r}
+#normalitat
+library(nortest)
+#Anderson-Darling normality test
+ad.test(grup_std)
+
+
+#Shapiro normality test no el podem aplicar ja que tenim m?s de 5000 mostres, utilitzem una mostra
+shapiro.test(sample(grup_std, size=4999))
+shapiro.test(sample(grup_ToU,size=4999))
+
+```
+
+
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(grup_std,grup_ToU)
+
+```
+p es mes petit que 0.05, per tant les variàncies són desconegudes i diferents.
+
+Utilitzarem un mètode per fer un contrast de dues mostres per la diferència de mitjanes amb distribució normal (teorema del l??mit central, si tenim més de 30 mostres podem considerar la distribució normal) i amb variàncies desconegudes i diferents. La hipòtesi alternativa és unilateral.
+
+```{r}
+test1<-t.test(grup_std, grup_ToU, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+test1
+```
+p=2.2e-16 < 0.05, rebutgem hipòtesi nul·la que mitjana de suma de consum Tou i std és igual i acceptem hipòtesi alternativa que mitjana std és més gran que la de tou.
+
+
+```{r}
+oneway.test(energy_sum ~ stdorToU, daily)
+
+```
+
+
+Quan no es compleix normalitat, tamb? podem aplicar test U de Mann-Whitney:
+```{r}
+wilcox.test(grup_std,grup_ToU, alternative="greater")
+```
+
+
+
+
+
+
+
+
+
+
+Provem amb energy mean:
+
+Ho: mitjana_energy_mean_std=mitjana_energy_mean_ToU
+H1: mitjana_energy_mean_std>mitjana_energy_mean_ToU
+
+
+```{r}
+#Calculem grups:
+
+grup_std<-daily$energy_mean[daily$stdorToU=="Std"]
+grup_ToU<-daily$energy_mean[daily$stdorToU=="ToU"]
+
+```
+
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(grup_std,grup_ToU)
+
+```
+
+```{r}
+t.test(grup_std, grup_ToU, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+rebutjem hipòtesi nul·la de que la mitjana dels dos grups és igual i acceptem la hipòtesi alternativa que mitjana de energy_mean de std és més gran que la mitjana de energy_mean de ToU.
+
+
+
+
+
+Hi ha diferents pics (energy_max)?
+
+```{r}
+#Calculem grups:
+
+grup_std_<-daily$energy_max[daily$stdorToU=="Std"]
+grup_ToU_<-daily$energy_max[daily$stdorToU=="ToU"]
+
+```
+
+```{r}
+#Calculem test igualtat variancies 
+var.test(grup_std_,grup_ToU_)
+
+```
+
+```{r}
+t.test(grup_std_, grup_ToU_, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+
+
+
+
+
+
+##Es diferent el consum segons el tipus de consumidor? (Acorn, acorn_grouped)? (4.2.2)
+
+Com que les variables Acorn i Acorn grouped tenen m?s de dos nivells de categoria, hem d'aplicar l'an?lisi de vari?ncia. 
+
+###Acorn grouped
+Ho: mitjana_consum_acorn_grouped_affluent=mitjana_consum_acorn_grouped_comfortable=mitjana_consum_acorn_grouped_adversity
+H1: almenys dos grups són diferents
+
+
+
+
+```{r}
+daily$Acorn_grouped<-as.character(daily$Acorn_grouped)
+daily$Acorn_grouped<-as.factor(daily$Acorn_grouped)
+
+summary(daily$Acorn_grouped)
+```
+Grups no equilibrats.
+
+```{r}
+library(DescTools)
+library(car)
+#Homoscedasticitat
+leveneTest(energy_sum ~ Acorn_grouped,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+Fem test de Kruskal Wallis:
+
+```{r}
+
+kruskal.test(energy_sum ~ Acorn_grouped,daily)
+
+```
+
+```{r}
+DunnTest(energy_sum ~ Acorn_grouped,daily, method="bonferroni")
+```
+
+
+
+```{r}
+#pairwise.wilcox.test(energy_sum ~ Acorn_grouped,daily)
+```
+
+```{r}
+#library(PMCMR)
+#posthoc.kruskal.nemenyi.test(energy_sum ~ Acorn_grouped,daily)
+
+#library(PMCMRplus)
+#kwAllPairsNemenyiTest(energy_sum ~ Acorn_grouped,daily)
+```
+```{r}
+#oneway.test(energy_sum ~ Acorn_grouped, daily)
+```
+
+
+
+
+
+
+
+
+
+
+
+###Consum diferent segons l'acorn?
+
+
+```{r}
+daily$Acorn<-as.character(daily$Acorn)
+daily$Acorn<-as.factor(daily$Acorn)
+
+summary(daily$Acorn)
+```
+
+
+
+Grups no equilibrats.
+
+```{r}
+#Homoscedasticitat
+LeveneTest(energy_sum ~ Acorn,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+```{r}
+#Fem Kruskal Wallis
+
+kruskal.test(energy_sum ~ Acorn,daily)
+
+
+```
+
+
+```{r}
+#Per saber quin o quins s?n els grups que difereixen
+
+DunnTest(energy_sum ~ Acorn,daily, method="bonferroni")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##max per cada acorn es igual
+
+
+Grups no equilibrats.
+
+```{r}
+library(DescTools)
+#Homoscedasticitat
+LeveneTest(energy_max ~ Acorn,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+```{r}
+#Fem Kruskal Wallis
+
+kruskal.test(energy_max ~ Acorn,daily)
+
+
+```
+
+
+```{r}
+DunnTest(energy_max ~ Acorn,daily, method="bonferroni")
+```
+
+
+
+
+
+
+
+
+##Tou vs acorn consum (4.2.3)
+
+
+```{r}
+#test de Friedman
+```
+
+
+```{r}
+library(dplyr)
+#Agrupem daily per acorn i per tarifa
+daily %>% group_by(Acorn, stdorToU) -> daily_agrupat_acorn_tou
+#Mostrem les mitjanes en una taula
+taula_daily_agrupat_acorn_tou<-summarise(daily_agrupat_acorn_tou, m=mean(energy_sum), sd=sd(energy_sum), n=length(energy_sum))
+taula_daily_agrupat_acorn_tou
+#Les representem des de les dues perspectives qualitatives
+ggplot(taula_daily_agrupat_acorn_tou, aes(x=Acorn, y=m, group=stdorToU, color=stdorToU))+geom_point() + geom_line() 
+ggplot(taula_daily_agrupat_acorn_tou, aes(x=stdorToU, y=m, group=Acorn, color=Acorn))+geom_point() + geom_line() 
+
+```
+
+Es veu interacci? entre tarifa i acorn, tot i que en alguns acorns es veu molt m?s clarament.
+
+
+
+```{r}
+
+dades_friedman<-aggregate(daily$energy_sum, by=list(a=daily$Acorn, t=daily$stdorToU), FUN=mean)
+
+friedman.test(dades_friedman$x, dades_friedman$a, dades_friedman$t)
+
+
+```
+
+Tamb? podem fer el test creant una variable que contingui els dos grups
+
+
+```{r}
+#Creem variable
+daily$at<-paste(daily$Acorn,daily$stdorToU)
+daily$at<-as.factor(daily$at)
+```
+
+
+```{r}
+kruskal.test(energy_sum~at,daily)
+```
+
+
+```{r}
+DunnTest(energy_sum~at,daily)
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+anova_tarifa_acorn<-aov(energy_sum ~ Acorn+stdorToU+Acorn*stdorToU, daily)
+summary(anova_tarifa_acorn)
+```
+L'an?lisi anova ens confirma la interacci? entre tarifa i acorn i confirma la influ?ncia per separat de cada variable en el valor de l'energia.
+```{r}
+plot(anova_tarifa_acorn)
+```
+Veiem que no hi ha normalitat dels residuus ni homoscedasticitat, de manera que l'adequaci? del model no ?s correcte. 
+
+Com que no es compleixen condicions d'aplicaci? anova: kruskal-wallis
+
+
+
+
+
+###Acorn segons estacio
+
+```{r}
+#Creem variable
+daily$ae<-paste(daily$Acorn,daily$season)
+daily$ae<-as.factor(daily$ae)
+```
+
+
+
+```{r}
+library(ggplot2)
+#Agrupem daily per acorn i per estacio
+daily %>% group_by(Acorn, season) -> daily_agrupat_acorn_season
+#Mostrem les mitjanes en una taula
+taula_daily_agrupat_acorn_season<-summarise(daily_agrupat_acorn_season, m=mean(energy_sum), sd=sd(energy_sum), n=length(energy_sum))
+taula_daily_agrupat_acorn_season
+#Les representem des de les dues perspectives qualitatives
+ggplot(taula_daily_agrupat_acorn_season, aes(x=Acorn, y=m, group=season, color=season))+geom_point() + geom_line() 
+ggplot(taula_daily_agrupat_acorn_season, aes(x=season, y=m, group=Acorn, color=Acorn))+geom_point() + geom_line() 
+```
+
+```{r}
+kruskal.test(energy_sum~ae,daily)
+```
+
+
+```{r}
+dun<-DunnTest(energy_sum~ae,daily)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Consum cap de setmana diferent que entre setmana? (4.2.4)
+
+finde>laboral
+
+```{r}
+#Calculem grups:
+
+grup_finde<-daily$energy_sum[daily$weekday==6 | daily$weekday==7]
+grup_laboral<-daily$energy_sum[daily$weekday==1 | daily$weekday==2 | daily$weekday==3 | daily$weekday==4 | daily$weekday==5 ]
+
+```
+
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(grup_finde,grup_laboral)
+
+```
+
+```{r}
+t.test(grup_finde, grup_laboral, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+p<0.05, rebutjem Ho, acceptem que mitjana consum finde és més gran que mitjana consum laboral. 
+
+
+###Consum finde es mes gran que isholiday?
+
+mitjana consu finde=mitjana consum isholiday
+
+```{r}
+grup_holiday<-daily$energy_sum[daily$isHoliday==TRUE]
+
+```
+
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(grup_finde,grup_holiday)
+
+```
+```{r}
+t.test(grup_finde, grup_holiday, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+Rebutjem H0
+
+##Consum isholiday mes gran que consum laboral
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(grup_holiday,grup_laboral)
+
+```
+
+```{r}
+t.test(grup_holiday, grup_laboral, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+
+
+##Consum dilluns diferent que divendres?
+
+```{r}
+daily$weekday<- as.factor(daily$weekday)
+```
+
+
+```{r}
+summary(daily$weekday)
+plot.new()
+plot.window(xlim=c(1,7.3),ylim=c(0,600000), yaxs="i", xaxs="i")
+axis(1)
+axis(2)
+points(summary(daily$weekday))
+
+
+```
+Grups són força equilibrats.
+
+```{r}
+#Homoscedasticitat
+library(car)
+leveneTest(energy_sum ~ weekday,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+
+
+
+També comprovem amb ANOVA  ja que els grups són força equilibrats. 
+```{r}
+#ANOVA
+
+anova_weekday<- aov (energy_sum ~ weekday, daily)
+summary(anova_weekday)
+
+
+```
+Com que p<0.05, rebutjem hipòtesis nul·la que són iguals i acceptem alternativa que almenys un grup és diferent dels altres.
+
+```{r}
+#Quantifiquem la diferència: comparació múltiple
+
+TukeyHSD(anova_weekday)
+```
+Veiem que no hi ha diferència entre els dies 3-4-5(dm,dc,dj) i si que n'hi ha per 1,2,6,7 (dg, dll, dv, dss tenen un comportament diferent entre ells i també diferent que el grup 3-4-5)
+
+
+Com que els nombre de mostres de cada grup ?s semblant per? no igual, confirmem utilitzant Kruskal Wallis
+
+```{r}
+kruskal.test(energy_sum ~ weekday, daily)
+
+```
+
+
+
+
+
+```{r}
+DunnTest(energy_sum ~ weekday, daily)
+```
+I surten els mateixos grups
+
+
+
+
+
+##Es consumeix més en isHoliday que en treball?
+#######CHauria de fer-ho amb l'estaci?
+mitjana_consum_Holiday>mitjana_consum_noHoliday
+
+```{r}
+#Calculem grups:
+
+grup_holiday<-daily$energy_sum[daily$isHoliday==TRUE]
+grup_no_holiday<-daily$energy_sum[daily$isHoliday==FALSE]
+
+```
+
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(grup_holiday,grup_no_holiday)
+
+```
+
+```{r}
+t.test(grup_holiday, grup_no_holiday, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+
+
+```{r}
+#Homoscedasticitat
+library(car)
+leveneTest(energy_sum ~ isHoliday,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Es consumeix menys a l'abril que al desembre? (4.2.5)
+
+```{r}
+daily$month<- as.factor(daily$month)
+```
+
+
+```{r}
+summary(daily$month)
+plot.new()
+plot.window(xlim=c(0,12.3),ylim=c(0,350000), yaxs="i", xaxs="i")
+axis(1)
+axis(2)
+points(summary(daily$month))
+
+
+```
+Grups no equilibrats.
+
+```{r}
+#Homoscedasticitat
+library(car)
+leveneTest(energy_sum ~ month,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+
+Fem Kruskal:
+
+```{r}
+kruskal.test(energy_sum~month, daily)
+
+```
+
+com que p<0.05, acceptem H1, mitjanes segons mes son diferents. 
+
+Quantifiquem:
+
+```{r}
+DunnTest(energy_sum~month, daily, method="bonferroni")
+```
+
+
+
+
+```{r}
+DunnTest(energy_sum~month, daily)
+
+```
+
+```{r}
+library(DescTools)
+DunnTest(energy_sum~month, daily, method="BH")
+
+``` 
+
+ 
+
+
+
+
+
+
+##Es consumeix més a l'estació hivern que a l'estació estiu?  (4.2.6)
+
+
+```{r}
+summary(daily$season)
+plot.new()
+plot.window(xlim=c(0.9,4.5),ylim=c(0,1000000), yaxs="i", xaxs="i")
+axis(1)
+axis(2)
+points(summary(daily$season))
+
+
+```
+Grups no equilibrats.
+
+```{r}
+#Homoscedasticitat
+library(car)
+leveneTest(energy_sum ~ season,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+
+
+```{r}
+kruskal.test(energy_sum ~ season, daily)
+
+```
+com que p<0.05, acceptem H1, mitjanes segons mes son diferents. 
+
+
+
+```{r}
+DunnTest(energy_sum ~ season, daily)
+DunnTest(energy_sum ~ season, daily, method="bonferroni")
+DunnTest(energy_sum ~ season, daily, method="BH")
+
+```
+
+
+També comprovem amb ANOVA homocedàstica ja que els grups són força equilibrats. 
+```{r}
+#ANOVA
+
+anova_season<- aov (energy_sum ~ season, daily)
+summary(anova_season)
+
+
+```
+Com que p<0.05, rebutjem hipòtesis nul·la que són iguals i acceptem alternativa que almenys un grup és diferent dels altres.
+
+```{r}
+#Quantifiquem la diferència: comparació múltiple
+
+TukeyHSD(anova_season)
+```
+Veiem que totes les estacions es comporten diferent.
+
+
+
+
+
+#???Es consumeix diferent a l'hivern que a les altres estacions?
+```{r}
+summary(daily$season)
+```
+
+
+```{r}
+hivern<-daily$energy_sum[daily$season=="winter"]
+altres<-daily$energy_sum[daily$season=="summer" | daily$season=="autumn" | daily$season=="spring"] 
+
+```
+
+```{r}
+#Calculem test igualtat variancies 
+
+var.test(hivern,altres)
+
+```
+
+```{r}
+t.test(hivern, altres, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+
+
+#Consum hivern i estiu diferent?
+
+
+```{r}
+estiu<-daily$energy_sum[daily$season=="summer" ] 
+
+```
+```{r}
+var.test(hivern,estiu)
+
+```
+```{r}
+t.test(hivern, estiu, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+
+
+
+
+#Consum tardor i primavera diferent?
+```{r}
+tardor<-daily$energy_sum[daily$season=="autumn" ] 
+
+primavera<-daily$energy_sum[daily$season=="spring" ] 
+
+```
+```{r}
+var.test(tardor,primavera)
+
+```
+```{r}
+t.test(tardor, primavera, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+##Hivern tardor
+```{r}
+t.test(hivern, tardor, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+##Estiu tardor
+```{r}
+t.test(primavera, estiu, conf.level=0.95, paired=FALSE, var.equal=FALSE, alternative="greater")
+
+```
+
+##Es consumeix més segons icon?
+```{r}
+summary(daily$icon)
+```
+Grupsno són equilibrats.
+
+```{r}
+#Homoscedasticitat
+library(car)
+leveneTest(energy_sum ~ icon,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+
+Fem ANOVA heterodàstica: Welch test
+
+```{r}
+oneway.test(energy_sum ~ icon, daily)
+
+```
+com que p<0.05, acceptem H1, mitjanes segons mes son diferents. 
+
+
+
+
+
+Fem anova per poder fer la coparació múltiple
+```{r}
+#ANOVA
+anova_icon<- aov (energy_sum ~ icon, daily)
+summary(anova_icon)
+```
+
+```{r}
+#Quantifiquem la diferència: comparació múltiple
+
+TukeyHSD(anova_icon)
+```
+
+
+
+##Canvia el consum amb la temperatura?
+Afegim variables qualitatives de la temperatura maxima i temperatura minima
+
+```{r}
+boxplot(daily$temperatureMax)
+```
+
+
+```{r}
+summary(daily$temperatureMax)
+
+summary(daily$temperatureMin)
+
+```
+
+```{r}
+
+daily$tempMaxFactor [daily$temperatureMax< 33.00 ]   <- "Molt Alta"
+daily$tempMaxFactor [daily$temperatureMax< 30.00 ]   <- "Alta"
+daily$tempMaxFactor [daily$temperatureMax< 21.00 ]   <- "Normal"
+daily$tempMaxFactor [daily$temperatureMax< 12.00 ]   <- "Baixa"
+daily$tempMaxFactor [daily$temperatureMax< 3.00 ]   <- "Molt Baixa"
+
+daily$tempMaxFactor<-as.factor((daily$tempMaxFactor))
+
+```
+
+
+```{r}
+summary(daily$tempMaxFactor)
+```
+
+```{r}
+#Homoscedasticitat
+library(car)
+leveneTest(energy_sum ~ tempMaxFactor,daily,center = "median")
+```
+com que p<0.05, hi ha falta de homoscedasticitat.
+
+
+Kruskal
+```{r}
+kruskal.test(energy_sum ~ tempMaxFactor, daily)
+
+```
+```{r}
+#Dunn's Kruskal-Wallis Multiple Comparisons.
+
+DunnTest(energy_sum~tempMaxFactor,daily,method="holm")
+DunnTest(energy_sum~tempMaxFactor,daily,method="bonferroni")
+
+#No utilitzem tukey ja que els grups no son equilibrats
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Clústering kmeans (eliminat)
+
+
+```{r}
+daily_cluster<-select(daily, energy_sum,temperatureMax,temperatureMin, dewPoint,uvIndex, sunsetTimeHour,  humidity, visibility, cloudCover,  month, weekday)
+
+#daily_cluster<-select(daily, LCLid, date, energy_sum,temperatureMax,temperatureMin, isHoliday, season, stdorToU, Acorn, Acorn_grouped,dewPoint,uvIndex, sunsetTimeHour,  humidity, visibility, cloudCover, icon, month, weekday)
+
+```
+
+
+
+
+
+
+```{r}
+# Creem variable SSE buida
+#SSE <- rep(0,10)
+
+#Rang de k que utilitzem
+#K=range(1:10)
+
+#Per cada valor de k entre 1 i 10
+#for (i in K){
+     
+#    kmeanModel <- kmeans(daily, i) #Aplicar kMeans
+
+    #Afegim suma distancies al quadrat del punt al centre més proper a la llista
+#    SSE[i]<-kmeanModel$tot.withinss
+#}
+
+# Gràfic del colze
+  
+#plot(2:10,SSE[2:10], xlab="Nombre de clústers (k)", ylab="SSE (tot.withins)")
+
+```
+ 
+ 
+```{r}
+
+SSE <- rep(0,10)
+fit_kmeans_2 <- kmeans(daily_cluster, 2)
+SSE[2]<-fit_kmeans_2$tot.withinss
+fit_kmeans_3 <- kmeans(daily_cluster, 3) 
+SSE[3]<-fit_kmeans_3$tot.withinss
+
+fit_kmeans_4 <- kmeans(daily_cluster, 4)
+SSE[4]<-fit_kmeans_4$tot.withinss
+
+fit_kmeans_5 <- kmeans(daily_cluster, 5) 
+SSE[5]<-fit_kmeans_5$tot.withinss
+
+fit_kmeans_6 <- kmeans(daily_cluster, 6)
+SSE[6]<-fit_kmeans_6$tot.withinss
+
+fit_kmeans_7 <- kmeans(daily_cluster, 7)
+SSE[7]<-fit_kmeans_7$tot.withinss
+
+fit_kmeans_8 <- kmeans(daily_cluster, 8)
+SSE[8]<-fit_kmeans_8$tot.withinss
+
+fit_kmeans_9 <- kmeans(daily_cluster, 9) 
+SSE[9]<-fit_kmeans_9$tot.withinss
+
+fit_kmeans_10 <- kmeans(daily_cluster, 10) 
+SSE[10]<-fit_kmeans_10$tot.withinss
+
+```
+ 
+ 
+```{r}
+fit_kmeans_11 <- kmeans(daily_cluster, 11) 
+SSE[11]<-fit_kmeans_11$tot.withinss
+
+fit_kmeans_12 <- kmeans(daily_cluster, 12) 
+SSE[12]<-fit_kmeans_10$tot.withinss
+```
+ 
+ Veiem que en fer el kmeans en k= 4, 9,10,11,12, ens apareix error, que significa que alguns punts estan molt a prop i l'algoritme no arriba a convergir. 
+
+```{r}
+# Gràfic del colze
+  
+plot(2:12,SSE[2:12], xlab="Nombre de clústers (k)", ylab="SSE (tot.withins)")
+```
+Sembla que sigui a partir del 10 que s'estabilitza, però al no poder tenir en compte aquesta observació perquè l'algoritme no ha convergit, ens quedem amb k=8
+
+
+
+
+
+
+
+
+
+```{r}
+daily_cluster<-select(daily, energy_sum,temperatureMax,temperatureMin, dewPoint, sunsetTimeHour,  humidity, month, weekday)
+```
+
+```{r}
+
+SSE <- rep(0,10)
+fit_kmeans_2 <- kmeans(daily_cluster, 2)
+SSE[2]<-fit_kmeans_2$tot.withinss
+fit_kmeans_3 <- kmeans(daily_cluster, 3) 
+SSE[3]<-fit_kmeans_3$tot.withinss
+
+fit_kmeans_4 <- kmeans(daily_cluster, 4)
+SSE[4]<-fit_kmeans_4$tot.withinss
+
+fit_kmeans_5 <- kmeans(daily_cluster, 5) 
+SSE[5]<-fit_kmeans_5$tot.withinss
+
+fit_kmeans_6 <- kmeans(daily_cluster, 6)
+SSE[6]<-fit_kmeans_6$tot.withinss
+
+fit_kmeans_7 <- kmeans(daily_cluster, 7)
+SSE[7]<-fit_kmeans_7$tot.withinss
+
+fit_kmeans_8 <- kmeans(daily_cluster, 8)
+SSE[8]<-fit_kmeans_8$tot.withinss
+
+fit_kmeans_9 <- kmeans(daily_cluster, 9) 
+SSE[9]<-fit_kmeans_9$tot.withinss
+
+fit_kmeans_10 <- kmeans(daily_cluster, 10) 
+SSE[10]<-fit_kmeans_10$tot.withinss
+
+```
+En k=5 no convergeix.
+
+
+```{r}
+fit_kmeans_11 <- kmeans(daily_cluster, 11) 
+SSE[11]<-fit_kmeans_11$tot.withinss
+
+fit_kmeans_12 <- kmeans(daily_cluster, 12) 
+SSE[12]<-fit_kmeans_12$tot.withinss
+```
+En k=12 no convergeix
+
+
+```{r}
+# Gràfic del colze
+  
+plot(2:12,SSE[2:12], xlab="Nombre de clústers (k)", ylab="SSE (tot.withins)", type="o", main="Gràfic del colze")
+```
+
+Veiem que de 2 a 3 baixa en picat l'error, tot i que sembla que sigui a partir de k=9 on s'estabilitza i l'error quasi no varia. 
+
+
+```{r}
+fit_kmeans_9 <- kmeans(daily_cluster, 9) 
+y_cluster9 <- fit_kmeans_9$cluster
+
+```
+
+```{r}
+#Afegim a daily la variable de y_cluster per veure quines caracteristiques té cadascun dels 9 grups
+
+
+daily$cluster_9<- y_cluster9
+
+
+```
+
+```{r}
+daily$cluster_9<- as.factor(daily$cluster_9)
+
+summary(daily$cluster_9)
+```
+
+```{r}
+summary(daily$Acorn_grouped[daily$cluster_9==1])
+summary(daily$Acorn_grouped[daily$cluster_9==2])
+summary(daily$Acorn_grouped[daily$cluster_9==3])
+summary(daily$Acorn_grouped[daily$cluster_9==4])
+summary(daily$Acorn_grouped[daily$cluster_9==5])
+summary(daily$Acorn_grouped[daily$cluster_9==6])
+summary(daily$Acorn_grouped[daily$cluster_9==7])
+summary(daily$Acorn_grouped[daily$cluster_9==8])
+summary(daily$Acorn_grouped[daily$cluster_9==9])
+
+
+
+```
+```{r}
+summary(daily$stdorToU[daily$cluster_9==1])
+summary(daily$stdorToU[daily$cluster_9==2])
+summary(daily$stdorToU[daily$cluster_9==3])
+summary(daily$stdorToU[daily$cluster_9==4])
+summary(daily$stdorToU[daily$cluster_9==5])
+summary(daily$stdorToU[daily$cluster_9==6])
+
+```
+
+
+```{r}
+summary(daily$cluster_9)
+barplot(summary(daily$cluster_9))
+#boxplot(daily$cluster_9,daily$Acorn_grouped)
+```
+```{r}
+#hist(daily$cluster9)
+```
+
+
+```{r}
+#clusplot(daily_cluster, y_cluster2, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+
+
+
+
+
+
+
+
+
+
+#Regles associació
+
+
+```{r}
+str(daily)
+```
+
+
+```{r}
+#Creem dataset on només hi tinguem factors, que llavors binaritzarem:
+ library(dplyr)
+daily_factor<-select(daily, energy_sum, season, Acorn, month, weekday, tempMaxFactor , sunsetTimeHour, stdorToU, icon, isHoliday)
+
+```
+
+```{r}
+summary(daily_factor$energy_sum)
+boxplot(daily_factor$energy_sum)
+
+
+```
+
+
+```{r}
+
+daily_factor$energy_sum_factor[daily_factor$energy_sum<333]<-"Molt alt"
+daily_factor$energy_sum_factor[daily_factor$energy_sum<200]<-"Alt"
+daily_factor$energy_sum_factor[daily_factor$energy_sum<15]<-"Normal"
+daily_factor$energy_sum_factor[daily_factor$energy_sum<8]<-"Baix"
+daily_factor$energy_sum_factor[daily_factor$energy_sum<4]<-"Molt baix"
+
+daily_factor$energy_sum_factor<- as.factor(daily_factor$energy_sum_factor)
+
+daily_factor$isHoliday<- as.factor(daily_factor$isHoliday)
+daily_factor$month<- as.factor(daily_factor$month)
+daily_factor$weekday<- as.factor(daily_factor$weekday)
+daily_factor$sunsetTimeHour<- as.factor(daily_factor$sunsetTimeHour)
+
+str(daily_factor)
+```
+
+```{r}
+#Eliminem energy_sum numeric
+
+daily_factor<-select(daily_factor,-energy_sum)
+
+```
+
+
+```{r}
+library(arules)
+
+#Binaritzem
+daily_bin<-as(daily_factor,"transactions")
+
+```
+
+
+```{r}
+#Regles
+
+rules<-apriori(daily_bin)
+```
+
+
+```{r}
+summary(rules)
+```
+
+```{r}
+rules.sorted<-sort(rules, by=c("confidence","support"))
+inspect(rules.sorted)
+```
+
+
+
+
+
+
+
+[31]	{tempMaxFactor=Normal,energy_sum_factor=Baix}	=>	{isHoliday=FALSE}	0.1339433	0.9808036	1.0038169	 471079
+[32]	{stdorToU=Std,tempMaxFactor=Normal,energy_sum_factor=Baix}	=>	{isHoliday=FALSE}	0.1058592	0.9807541	1.0037662 372307
+[45]	{energy_sum_factor=Baix}	=>	{isHoliday=FALSE}	0.3146842	0.9787370	1.0017018	
+[46]	{stdorToU=Std,energy_sum_factor=Baix}	=>	{isHoliday=FALSE}	0.2485483	0.9787345	1.0016993	
+[47]	{stdorToU=Std,energy_sum_factor=Normal}	=>	{isHoliday=FALSE}	0.2426766	0.9783781	1.0013345	
+[48]	{energy_sum_factor=Normal}	=>	{isHoliday=FALSE}	0.3033083	0.9783374	1.0012928
+[66]	{stdorToU=Std,icon=partly-cloudy-day,energy_sum_factor=Normal}	=>	{isHoliday=FALSE}	0.1758421	0.9754311	0.9983184	
+[67]	{icon=partly-cloudy-day,energy_sum_factor=Normal}	=>	{isHoliday=FALSE}	0.2194346	0.9754295	0.9983167
+[70]	{stdorToU=Std,energy_sum_factor=Alt}	=>	{isHoliday=FALSE}	0.1423659	0.9746840	0.9975537	
+[72]	{energy_sum_factor=Alt}	=>	{isHoliday=FALSE}	0.1725305	0.9746190	0.9974872
+[75]	{energy_sum_factor=Molt baix}	=>	{isHoliday=FALSE}	0.1865379	0.9745045	0.9973700	
+[76]	{stdorToU=Std,energy_sum_factor=Molt baix}	=>	{isHoliday=FALSE}	0.1469672	0.9744586	0.9973230	
+[80]	{icon=partly-cloudy-day,energy_sum_factor=Alt}	=>	{isHoliday=FALSE}	0.1184958	0.9727763	0.9956012	
+[82]	{stdorToU=Std,icon=partly-cloudy-day,energy_sum_factor=Molt baix}	=>	{isHoliday=FALSE}	0.1104688	0.9725764	0.9953967	
+[83]	{tempMaxFactor=Baixa,energy_sum_factor=Baix}	=>	{isHoliday=FALSE}	0.1102163	0.9717522	0.9945532	
+[153]	{icon=partly-cloudy-day,energy_sum_factor=Alt}	=>	{stdorToU=Std}	0.1005791	0.8256916	1.0335554	
+[154]	{isHoliday=FALSE,energy_sum_factor=Alt}	=>	{stdorToU=Std}	0.1423659	0.8251636	1.0328945	
+[155]	{energy_sum_factor=Alt}	=>	{stdorToU=Std}	0.1460636	0.8251086	1.0328256	
+[156]	{isHoliday=FALSE,icon=partly-cloudy-day,energy_sum_factor=Normal}	=>	{stdorToU=Std}	0.1758421	0.8013416	1.0030755	
+[157]	{icon=partly-cloudy-day,energy_sum_factor=Normal}	=>	{stdorToU=Std}	0.1802712	0.8013403	1.0030738	
+[170]	{isHoliday=FALSE,energy_sum_factor=Normal}	=>	{stdorToU=Std}	0.2426766	0.8000986	1.0015195	
+[171]	{energy_sum_factor=Normal}	=>	{stdorToU=Std}	0.2480397	0.8000653	1.0014778
+
+
+
+
+
+#Gràfics
+
+
+
+
+
+
+
+
+
+```{r}
+
+#Creem dataset on hi ha el consum agrupat dels consumidors per dia:
+
+daily_grouped_day<-daily %>% group_by(date)%>% summarise(sum=sum(energy_sum))
+
+
+
+```
+
+```{r}
+head(daily_grouped_day)
+```
+
+```{r}
+
+
+plot(daily$energy_mean,daily$temperatureMax)
+
+
+```
+
+```{r}
+
+
+ggplot()
+
+plot(daily$date, daily$temperatureMax , type="l", col="red", ylab="Temperature", xlab="Date")
+lines(daily$date, daily$temperatureMin , col="blue")
+lines( daily$date, daily$energy_mean , col="yellow")
+legend("topright",legend=c("Max", "Min","Energy"), col=c("red", "blue","yellow"), pch=c(1,1))
+
+
+
+```
+
+
+
+
+```{r}
+daily_mean_sum<-aggregate(daily$energy_sum, list(daily$date), mean)
+daily_mean_sum<-daily_mean_sum[order(daily_mean_sum$Group.1),]
+```
+
+```{r}
+plot(daily$date, daily$temperatureMax , type="l", col="red", ylab="Temperature", xlab="Date")
+lines(daily$date, daily$temperatureMin , col="blue")
+#Agreguem linia de tendencia
+smoothingSpline = smooth.spline(daily$date, daily$temperatureMax , spar=0.7)
+lines(smoothingSpline, col='black', lwd=3)
+par(new=TRUE)
+plot(daily_mean_sum$Group.1 ,daily_mean_sum$x , type="l",xaxt="n", yaxt="n", xlab="", ylab="", col="yellow")
+axis(4, las=1, cex.axis=.75)
+```
+

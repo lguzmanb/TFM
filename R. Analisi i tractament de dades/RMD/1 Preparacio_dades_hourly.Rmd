@@ -1,0 +1,633 @@
+---
+title: "Analisi dades"
+author: "Laura Guzman"
+date: "16 d'agost de 2019"
+output:
+  html_document:
+    toc: yes
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+
+library(timeDate)
+library(lubridate)
+library(gdata)
+
+library(knitr)
+
+```
+**Negreta**
+*Cursiva*
+
+
+
+
+
+
+#Weather hourly
+
+
+```{r}
+#Carreguem arxiu de dades
+weather_hourly <-read.csv(file="dades/6weather_hourly_darksky.csv", header=TRUE, sep=",")
+
+
+```
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(weather_hourly)
+# Resum 
+summary(weather_hourly)
+# Tipus de dades 
+str(weather_hourly)
+
+```
+
+```{r}
+
+#Convertim time en timedate enlloc de factor
+weather_hourly$time<-as.timeDate(weather_hourly$time) 
+```
+
+
+
+```{r}
+#Comprovem que no hi hagi noms repetits escrits diferent
+summary(weather_hourly$icon)
+summary(weather_hourly$summary)
+
+
+
+```
+
+
+
+```{r}
+#Boxplot
+
+library(sfsmisc)
+
+mult.fig(8)
+
+boxplot(weather_hourly$windBearing, main="windBearing",horizontal = TRUE)
+boxplot(weather_hourly$windSpeed, main="wind speed",horizontal = TRUE)
+
+boxplot(weather_hourly$temperature, main="temperature",horizontal = TRUE)
+boxplot(weather_hourly$apparentTemperature, main="apparent temperature",horizontal = TRUE)
+boxplot(weather_hourly$visibility, main="Visibility",horizontal = TRUE)
+boxplot(weather_hourly$dewPoint, main="dewPoint",horizontal = TRUE)
+boxplot(weather_hourly$pressure, main="pressure",horizontal = TRUE)
+boxplot(weather_hourly$humidity, main="humidity",horizontal = TRUE)
+
+
+
+```
+
+
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(weather_hourly))
+```
+
+
+Comprovem quines files tenen els valors buits de pressure.
+
+```{r}
+weather_hourly[is.na(weather_hourly$pressure),]
+
+
+
+
+```
+
+
+Abans de tractar les dades, creem les variables hora, data, any, mes i dia de la setmana
+```{r}
+
+#Creem variable hora i data
+weather_hourly$hour<-hour(weather_hourly$time)
+weather_hourly$date<-as.Date(weather_hourly$time)
+#Creem variable any i mes
+weather_hourly$year<-year(weather_hourly$date)
+weather_hourly$month<-month(weather_hourly$date)
+
+weather_hourly$weekday<-wday(weather_hourly$date, label=FALSE, week_start = 1) #Week_start=-1 means Monday.  7 means sunday.
+
+
+#Comprovem
+str(weather_hourly)
+
+
+```
+
+
+
+
+```{r}
+#Fem llista amb les dates que els hi falta una hora amb la pressió
+llista_data_na_pressure<-weather_hourly$date[is.na(weather_hourly$pressure)]
+
+
+for (i in 1:length(llista_data_na_pressure) ){
+  print(weather_hourly[weather_hourly$date==llista_data_na_pressure[i],])
+}
+
+```
+
+Veiem que el valor de la pressió atmosfèrica es pot calcular aproximadament a partir del valor de l'hora anterior i l'hora següent.
+
+Tractem els valors:
+
+```{r}
+
+
+#Fem llista amb les hores buides
+llista_hora_na_pressure<-weather_hourly$hour[is.na(weather_hourly$pressure)]
+
+
+
+for (i in 1:length(llista_data_na_pressure)){
+
+  #Calculem valor de l'hora següent i l'anterior a el NA
+  
+  #Si és 23, llavors és 00 del dia seguent
+  if (llista_hora_na_pressure[i] == 23){
+      hora_seguent<- 0
+      dia_seguent<-llista_data_na_pressure[i]+1
+    }
+  else{
+      hora_seguent<- llista_hora_na_pressure[i] +1
+      dia_seguent<- llista_data_na_pressure[i]
+  }
+  
+
+  #Si és 0 llavors és 23 del dia abans!
+  if (llista_hora_na_pressure[i] == 0) {
+      hora_abans<-23
+      dia_abans<-llista_data_na_pressure[i]-1
+  }
+  else{
+      hora_abans<- llista_hora_na_pressure[i]  -1
+      dia_abans<-llista_data_na_pressure[i]
+  }
+
+  
+  #Calculem valor de la pressió de l'hora seguent i l'hora abans
+  
+  #Si a l'hora seguent no hi ha valor, agafem la seguent hora
+  if (is.na(weather_hourly$pressure[weather_hourly$date==dia_seguent & weather_hourly$hour==hora_seguent])){
+    hora_seguent<-hora_seguent+1
+    pressure_seguent<-weather_hourly$pressure[weather_hourly$date==dia_seguent & weather_hourly$hour==hora_seguent]
+  }
+  else{
+    pressure_seguent<-weather_hourly$pressure[weather_hourly$date==dia_seguent & weather_hourly$hour==hora_seguent]
+  }
+  
+  #Si a l'hora abans no hi ha valor, agafem l'hora anterior
+  if(is.na(weather_hourly$pressure[weather_hourly$date==dia_abans & weather_hourly$hour==hora_abans])){
+    hora_abans<-hora_abans-1
+    pressure_abans<-weather_hourly$pressure[weather_hourly$date==dia_abans & weather_hourly$hour==hora_abans]
+  }
+  else{
+      pressure_abans<-weather_hourly$pressure[weather_hourly$date==dia_abans & weather_hourly$hour==hora_abans]
+    
+  }
+
+  
+  #Assignem mitjana de les dues pressions (anterior i posterior) al valor NA
+  weather_hourly$pressure[weather_hourly$date==llista_data_na_pressure[i] & weather_hourly$hour==llista_hora_na_pressure[i]]<- (pressure_seguent+pressure_abans)/2
+ 
+  #Comprovem que els valors NA s'han omplert correctament
+  print(weather_hourly[weather_hourly$date==llista_data_na_pressure[i] & weather_hourly$hour==llista_hora_na_pressure[i],])
+}
+
+```
+
+Ordenem dades
+```{r}
+weather_hourly<-weather_hourly[order(weather_hourly$date,weather_hourly$hour),]
+
+```
+
+
+
+Gràfic
+
+```{r}
+plot(weather_hourly$time, weather_hourly$temperature, ylab="Temperature", xlab="Date", type="l")
+ggplot(weather_hourly,aes(x=icon,fill=summary))+geom_bar()+facet_wrap(~year)
+
+```
+
+
+
+
+
+
+
+
+
+
+# Tariffs
+
+```{r}
+#Carreguem arxiu de dades
+tariffs <-read.csv(file="dades/9Tariffs.csv", header=TRUE, sep=";" ,stringsAsFactors = FALSE)
+```
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(tariffs)
+# Resum 
+summary(tariffs)
+# Tipus de dades 
+str(tariffs)
+
+```
+
+Convertim a factor la variable Tariff i a timestamp la variable TariffDateTime
+```{r}
+
+tariffs$Tariff<-as.factor(tariffs$Tariff)
+tariffs$TariffDateTime<-as.timeDate(tariffs$TariffDateTime)
+
+str(tariffs)
+```
+
+
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(tariffs))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+#hhblock_dataset
+
+2hhblock_dataset(tots els blocs) id, dia, hh_1 (consum primera mitja hora), hh2 (consum segona mitja hora)
+
+
+```{r}
+
+#Creem una llista amb els noms dels arxius que volem carregar que es troben a la carpeta indicada
+
+library(timereg)
+library(mets)
+library(data.table)
+library(timeDate)
+
+files_hhblock<-list.files(path="dades/2hhblock_dataset")
+#print(files_hhblock)
+
+#Anir? a buscar a la carpeta Smart meters/R i per tant cal que tinguem les dades que volem carregar all?. 
+#Creem dataframe amb les dades de tots els blocs, 
+hhblock_dataset <- do.call(rbind, lapply(files_hhblock, function(x) as.data.frame(fread(x,header = TRUE))))
+head(hhblock_dataset)
+
+```
+
+
+
+```{r}
+#Resum dades 
+
+#Dimensi?
+dim(hhblock_dataset)
+# Resum 
+summary(hhblock_dataset)
+# Tipus de dades 
+str(hhblock_dataset)
+
+```
+
+
+Copiem el dataset per si de cas
+```{r}
+#hhblock_dataset_copia<- hhblock_dataset
+```
+
+```{r}
+#hhblock_dataset<- hhblock_dataset_copia
+
+```
+
+En principi, aquest dataset només l'hem utilitzat per comprovar els valors buits del dataset daily_dataset_csv. Tot i així també tractem les dades per si l'haguéssim de necessitar.
+
+```{r}
+#Mirem si cont? valors buits
+colSums(is.na(hhblock_dataset))
+colSums(hhblock_dataset=="")
+
+```
+
+
+
+PEr a tractar els valors buits, primer afegirem la variable "suma total d'energia".
+
+
+```{r}
+#Afegim variable total (suma de totes les mitjes hores)
+hhblock_dataset$total<-rowSums(hhblock_dataset[,3:50], na.rm=TRUE)
+
+```
+
+Com que els NA de hh_19 nomes contenen aquest valor de NA ( o sigui, no hi ha cap altre Na en la mateixa fila), per obtenir el valor de hh_19 farem la difer?ncia entre el total d'energia del daily_dataset (energy_sum) i del total d'energia de l'hourly (variable total que hem creat) sense el valor NA, i el resultat ser? l'energia consumida a hh_19
+
+
+Carreguem dataset daily:
+```{r}
+#Carreguem arxiu de dades
+daily_dataset <-read.csv(file="dades/3daily_dataset_csv.csv", header=TRUE, sep="," ,stringsAsFactors = FALSE)
+```
+
+
+
+Tractem valors, comencant per hh_19
+
+
+```{r}
+hhblock_dataset[is.na(hhblock_dataset$hh_19),]
+```
+
+Tractem hh_19
+```{r}
+
+#Guardem els id dels que tenen NA a hh_19
+id<-hhblock_dataset$LCLid[is.na(hhblock_dataset$hh_19)]
+
+
+#Guardem els dies dels que tenen NA a hh_19
+dia<-hhblock_dataset$day[is.na(hhblock_dataset$hh_19)]
+
+
+for (i in 1:length(id)){
+  #Mostrem l?nia que t? NA a hh_19
+  hi<- hhblock_dataset[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i],]
+  hi
+  print(hi)
+  #Agafem el valor d'energia total (energy_sum) del dataset daily_dataset
+  di<-daily_dataset[daily_dataset$LCLid==id[i] & daily_dataset$day==dia[i] ,]
+  
+  totalenergy<-di$energy_sum
+  
+  
+  
+  #Assignem al valor hh_19 de la llista de ids i dies amb NA el valor de restar a l'energia total de daily el valor de lenergia total del hh ( ja que al fer la suma de l'energia total, no ha tingut amb compte els NA, i la difer?ncia ?s el hh_19)
+  hhblock_dataset$hh_19[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]] <- (totalenergy- hi$total)
+ 
+  #Modifiquem el valor de l'energia total, tornant a sumar tots els hh_x 
+   hhblock_dataset$total[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]]<- totalenergy
+   
+   #Mostrem fila modificada
+   hi   
+}
+```
+
+
+Tractem hh_25
+```{r}
+
+hhblock_dataset[is.na(hhblock_dataset$hh_25),]
+
+```
+
+```{r}
+
+
+#Guardem els id dels que tenen NA a hh_25
+id<-hhblock_dataset$LCLid[is.na(hhblock_dataset$hh_25)]
+
+
+
+#Guardem els dies dels que tenen NA a hh_25
+dia<-hhblock_dataset$day[is.na(hhblock_dataset$hh_25)]
+
+
+
+for (i in 1:length(dia)){
+  #Mostrem l?nia que t? NA a hh_25
+  hi<- hhblock_dataset[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i],]
+  hi
+  #Agafem el valor d'energia total (energy_sum) del dataset daily_dataset
+  di<-daily_dataset[daily_dataset$LCLid==id[i] & daily_dataset$day==dia[i] ,]
+  
+  totalenergy<-di$energy_sum
+
+  
+  #Assignem al valor hh_25 de la llista de ids i dies amb NA el valor de restar a l'energia total de daily el valor de lenergia total del hh ( ja que al fer la suma de l'energia total, no ha tingut amb compte els NA, i la difer?ncia ?s el hh_25)
+  hhblock_dataset$hh_25[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]] <- (totalenergy- hi$total)
+ 
+  #Modifiquem el valor de l'energia total, tornant a sumar tots els hh_x 
+   hhblock_dataset$total[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]]<- totalenergy
+   
+  
+}
+
+
+
+
+
+```
+
+Tractem hh_26
+
+```{r}
+hhblock_dataset[is.na(hhblock_dataset$hh_26),]
+
+```
+
+
+```{r}
+
+
+#Guardem els id dels que tenen NA a hh_26
+id<-hhblock_dataset$LCLid[is.na(hhblock_dataset$hh_26)]
+
+#Guardem els dies dels que tenen NA a hh_26
+dia<-hhblock_dataset$day[is.na(hhblock_dataset$hh_26)]
+
+for (i in 1:length(id)){
+  #Mostrem l?nia que t? NA a hh_26
+  hi<- hhblock_dataset[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i],]
+  
+  #Agafem el valor d'energia total (energy_sum) del dataset daily_dataset
+  di<-daily_dataset[daily_dataset$LCLid==id[i] & daily_dataset$day==dia[i] ,]
+  
+  totalenergy<-di$energy_sum
+  
+  #Assignem al valor hh_26 de la llista de ids i dies amb NA el valor de restar a l'energia total de daily el valor de lenergia total del hh ( ja que al fer la suma de l'energia total, no ha tingut amb compte els NA, i la difer?ncia ?s el hh_26)
+  hhblock_dataset$hh_26[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]] <- (totalenergy- hi$total)
+ 
+  #Modifiquem el valor de l'energia total, tornant a sumar tots els hh_x 
+   hhblock_dataset$total[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]]<- totalenergy
+   
+  
+}
+
+```
+
+
+Tractem els hh_30
+```{r}
+hhblock_dataset[is.na(hhblock_dataset$hh_30),]
+
+```
+
+
+
+```{r}
+#Guardem els id dels que tenen NA a hh_30
+id<-hhblock_dataset$LCLid[is.na(hhblock_dataset$hh_30)]
+
+#Guardem els dies dels que tenen NA a hh_30
+dia<-hhblock_dataset$day[is.na(hhblock_dataset$hh_30)]
+
+
+for (i in 1:length(id)){
+  #Mostrem l?nia que t? NA a hh_30
+  hi<- hhblock_dataset[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i],]
+  
+  #Agafem el valor d'energia total (energy_sum) del dataset daily_dataset
+  di<-daily_dataset[daily_dataset$LCLid==id[i] & daily_dataset$day==dia[i] ,]
+  
+  totalenergy<-di$energy_sum
+  
+  #Assignem al valor hh_30 de la llista de ids i dies amb NA el valor de restar a l'energia total de daily el valor de lenergia total del hh ( ja que al fer la suma de l'energia total, no ha tingut amb compte els NA, i la difer?ncia ?s el hh_30)
+  hhblock_dataset$hh_30[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]] <- (totalenergy- hi$total)
+ 
+  #Modifiquem el valor de l'energia total, tornant a sumar tots els hh_x 
+   hhblock_dataset$total[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]]<- totalenergy
+  
+}
+```
+
+
+
+
+
+Tractem els hh_36
+
+```{r}
+hhblock_dataset[is.na(hhblock_dataset$hh_36),]
+
+```
+
+
+```{r}
+
+#Guardem els id dels que tenen NA a hh_36
+id<-hhblock_dataset$LCLid[is.na(hhblock_dataset$hh_36)]
+
+
+
+#Guardem els dies dels que tenen NA a hh_36
+dia<-hhblock_dataset$day[is.na(hhblock_dataset$hh_36)]
+
+
+for (i in 1:length(id)){
+  #Mostrem l?nia que t? NA a hh_36
+  hi<- hhblock_dataset[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i],]
+  
+  #Agafem el valor d'energia total (energy_sum) del dataset daily_dataset
+  di<-daily_dataset[daily_dataset$LCLid==id[i] & daily_dataset$day==dia[i] ,]
+  
+  totalenergy<-di$energy_sum
+  
+  #Mostrem energia total
+  totalenergy
+  
+  #Assignem al valor hh_36 de la llista de ids i dies amb NA el valor de restar a l'energia total de daily el valor de lenergia total del hh ( ja que al fer la suma de l'energia total, no ha tingut amb compte els NA, i la difer?ncia ?s el hh_36)
+  hhblock_dataset$hh_36[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]] <- (totalenergy- hi$total)
+ 
+  #Modifiquem el valor de l'energia total, tornant a sumar tots els hh_x 
+   hhblock_dataset$total[hhblock_dataset$LCLid==id[i] & hhblock_dataset$day==dia[i]]<- totalenergy
+     
+}
+```
+
+
+Copiem el dataset per no haver de tornar a carregar i treure NA si ens equivoquem
+```{r}
+hhblock_dataset_copia_ple <- hhblock_dataset
+```
+
+```{r}
+#Comrprovem que no hi ha NA
+colSums(is.na(hhblock_dataset))
+
+
+```
+
+
+
+
+Fem transformacions a les variables
+
+```{r}
+#Passem de chr a factor la data
+hhblock_dataset$day<-as.Date(hhblock_dataset$day)
+```
+
+```{r}
+#Ordenem les dades de weather_daily per data
+hhblock_dataset<-hhblock_dataset[order(hhblock_dataset$day),]
+```
+
+
+
+
+
+#Halfhourly_dataset
+Podem carregar el fiter però no tenim suficient RAM per tractar les dades, de manera que ho farem en un altre arxiu individual. 
+Ens surt l'error Error: cannot allocate vector of size 3.8 Gb i comprovem i és cert que només tenim disponibles 3.1GB de RAM de 16GB. 
+
+
+
+#Exportem dades
+
+
+
+
+```{r}
+write.csv(weather_hourly,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/weather_hourly.csv")
+write.csv(tariffs,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/tariffs.csv")
+write.csv(hhblock_dataset,file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/hhblock_dataset.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

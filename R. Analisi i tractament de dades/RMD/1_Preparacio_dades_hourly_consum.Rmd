@@ -1,0 +1,238 @@
+---
+title: "1_Preparacio_dades_hourly_consum"
+author: "Laura Guzman"
+date: "4 novembre de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r}
+
+library(data.table)  #Carregar molts valors
+library(ff) #Virtual dataset
+library(readr)
+library(dplyr)#ajuntar datasets
+library(ffbase)
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+hourly_consum_1<- read.csv.ffdf(file= "C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Brut/hourly_consum_brut_1_sense0.csv ", header=T,  sep= ",", quote="", dec=".")
+
+#hourly_consum_2<- read.csv.ffdf(file= "C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Brut/hourly_consum_brut_2_sense0.csv ", header=T, colClasses = c("factor", "factor", "numeric"), sep= ",", quote="", dec=".",row.names = FALSE,transFUN = function(d) {d$offendingcolumn <- as.numeric(d$offendingcolumn) d})
+
+str(hourly_consum_1)
+
+#str(hourly_consum_2)
+
+```
+
+
+```{r}
+hourly_consum_2<- read.csv.ffdf(file= "C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/Brut/hourly_consum_brut_2_sense0.csv ", header=T,  sep= ",", quote="", dec=".")
+
+str(hourly_consum_2)
+
+```
+
+
+ 
+```{r}
+#Ajuntem els dos datasets virtuals en un 
+halfhourly_consum<-ffdfappend(hourly_consum_1,hourly_consum_2)
+```
+
+```{r}
+halfhourly_consum
+```
+```{r}
+
+#lapply(halfhourly_consum[3], as.numeric)
+#as.numeric(halfhourly_consum[3])
+
+as.numeric(as.character(halfhourly_consum[3]))
+
+
+```
+
+
+
+```{r}
+vmode(halfhourly_consum[3])="numeric"
+```
+
+
+
+```{r}
+halfhourly_consum[3]
+```
+
+
+```{r}
+sum(halfhourly_consum$X.energy.kWh.hh..=="")
+
+
+
+```
+
+
+
+```{r}
+#Comprovem valors buits
+
+#na.count(halfhourly_consum)
+#colSums(is.na(physical(halfhourly_consum)))
+#colSums(hourly_consum=="")
+
+
+```
+
+
+
+```{r}
+
+halfhourly_consum[3]<-as.numeric(physical.ffdf(halfhourly_consum[3]))
+```
+
+
+```{r}
+halfhourly_consum
+```
+
+
+
+```{r}
+halfhourly_consum[1:200,1:3]
+```
+
+
+```{r}
+write.csv(hourly_consum, file="C:/Users/Laura/Desktop/Smart meters London/workspace R/Dades netes/hourly_consum_brut.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Altres
+## Per carregar 
+
+```{r}
+files_halfhourly<-list.files(path="dades")
+
+tmp<-lapply( files_halfhourly, read_csv.ffdf, header=TRUE, stringsAsFactors=TRUE)
+
+halfhourly_dataset<- do.call(rbind,tmp)
+
+str(halfhourly_dataset)
+
+
+
+
+```
+
+Quan carregui dades de halfhourly i les guardi_ row.names = FALSE perwuè no hi hagi l'index
+
+
+```{r}
+
+files_halfhourly<-list.files(path="dades")
+
+#Anir? a buscar a la carpeta Smart meters/R i per tant cal que tinguem les dades que volem carregar all?. 
+#Creem dataframe amb les dades de tots els blocs, 
+halfhourly_dataset <- do.call(rbind, lapply(files_halfhourly, function(x) as.ffdf(read.csv.ffdf(x,header = TRUE,stringsAsFactors=TRUE ))))
+
+str(halfhourly_dataset)
+```
+
+```{r}
+virtual(halfhourly_dataset)
+```
+
+
+
+```{r}
+#row.names=FALSE
+files_halfhourly<-list.files(path="dades")
+
+#Anir? a buscar a la carpeta Smart meters/R i per tant cal que tinguem les dades que volem carregar all?. 
+#Creem dataframe amb les dades de tots els blocs, 
+halfhourly_dataset <- do.call(rbind, lapply(files_halfhourly, function(x) as.ffdf(read.csv(x,header = TRUE,stringsAsFactors=TRUE))))
+
+str(halfhourly_dataset)
+```
+
+```{r}
+summary(halfhourly_dataset)
+```
+
